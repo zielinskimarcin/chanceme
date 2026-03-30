@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Chance Me for Bocconi | Admission Calculator | Check Your Chances </title>
+    <meta name="description" content="An algorithm created by analyzing 600+ Bocconi candidates from the last 3 years, statistically analyzes your data and allows you to estimate your chances of getting in most accurately. Made by a Bocconi student.">
+    <meta name="keywords" content="Bocconi, Admission, Chance Me, Check your chances, Calculator, BIEM, BIEF, SAT, GPA, Bocconi Test">
+    <meta name="author" content="Marcin - Bocconi Student">
+    <link rel="canonical" href="https://chance-me.com/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chance-me.com/">
+    <meta property="og:title" content="Chance Me for Bocconi | Admission Calculator">
+    <meta property="og:description" content="Stop guessing. Check your Bocconi admission chances based on 600+ historical applicant profiles.">
+    <meta property="og:image" content="https://chance-me.com/photo.png">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://chance-me.com/">
+    <meta name="twitter:title" content="Chance Me for Bocconi | Admission Calculator">
+    <meta name="twitter:description" content="Stop guessing. Check your Bocconi admission chances based on 600+ historical applicant profiles.">
+    <meta name="twitter:image" content="https://chance-me.com/photo.png">
+
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TQX27XKE8K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-TQX27XKE8K');
+    </script>
+
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "vx5oj467o6");
+    </script>
+
+    <script defer src="/_vercel/insights/script.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in { animation: fadeIn 0.5s ease-out forwards; }
+        
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            background-color: #171717;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 50;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.1s ease-in-out, visibility 0.1s;
+            font-size: 0.75rem;
+            font-weight: 400;
+            width: max-content;
+            max-width: 250px;
+            pointer-events: none;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .tooltip-container:hover .tooltip-text,
+        .tooltip-container.active .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-container .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #171717 transparent transparent transparent;
+        }
+        
+        .tooltip-historical .tooltip-text {
+            max-width: 350px;
+            width: 350px;
+            line-height: 1.5;
+            left: auto;
+            right: -10px;
+            transform: none;
+        }
+        .tooltip-historical .tooltip-text::after {
+            left: auto;
+            right: 15px;
+        }
+        
+        @media (max-width: 640px) {
+            .tooltip-historical .tooltip-text {
+                width: 300px;
+                right: -20px;
+            }
+        }
+
+        .tooltip-historical .tooltip-text p {
+            margin-bottom: 8px;
+        }
+        .tooltip-historical .tooltip-text p:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body class="bg-white text-neutral-900 antialiased relative min-h-screen overflow-x-hidden">
+
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/3 -left-20 w-80 h-80 bg-violet-100/20 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-20 right-1/4 w-64 h-64 bg-amber-100/20 rounded-full blur-3xl"></div>
+        
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23000000' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E&quot;);"></div>
+        
+        <div class="absolute top-0 left-1/4 w-px h-full bg-gradient-to-b from-transparent via-neutral-400 to-transparent opacity-10"></div>
+        <div class="absolute top-0 right-1/3 w-px h-full bg-gradient-to-b from-transparent via-neutral-300 to-transparent opacity-10"></div>
+    </div>
+
+    <div class="relative z-10 max-w-5xl mx-auto flex flex-col min-h-screen">
+        
+        <header class="pt-20 pb-12 px-6 relative">
+            <div class="absolute top-12 left-6 w-12 h-12 border border-neutral-200 rounded-lg rotate-12 opacity-40 pointer-events-none hidden md:block"></div>
+            <div class="absolute top-16 right-12 w-8 h-8 border border-neutral-300 rounded-full opacity-30 pointer-events-none hidden md:block"></div>
+            
+            <div class="relative text-center md:text-left">
+                <h1 class="text-4xl md:text-5xl tracking-tight text-neutral-900 mb-4 font-light">
+                    Bocconi Admission <span class="block md:inline text-neutral-600">Calculator</span>
+                </h1>
+                <p class="text-sm text-neutral-600 max-w-2xl mx-auto md:mx-0 leading-relaxed">
+                    An algorithm created by analyzing 6+ Bocconi candidates from the last 3 years, statistically analyzes your data and allows you to estimate your chances of getting in most accurately. Made by a Bocconi student.
+                </p>
+            </div>
+        </header>
+
+        <main class="px-6 pb-12 flex-grow space-y-12">
+            
+            <div class="w-full relative group">
+                <div class="absolute -top-2 -left-2 w-16 h-16 border-l-2 border-t-2 border-neutral-300 rounded-tl-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                <div class="absolute -bottom-2 -right-2 w-16 h-16 border-r-2 border-b-2 border-neutral-300 rounded-br-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                
+                <div class="bg-white/80 backdrop-blur-md border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-lg shadow-neutral-200/50 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-violet-50/20 pointer-events-none"></div>
+                    
+                    <div class="relative">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-neutral-600"></i>
+                                <h2 class="text-lg font-medium text-neutral-800">Enter Your Statistics</h2>
+                            </div>
+                            
+                            <div class="inline-flex bg-neutral-100/80 p-1 rounded-lg border border-neutral-200/60 self-start sm:self-auto">
+                                <button type="button" id="btn-sat" class="px-4 py-1.5 text-sm font-semibold rounded-md bg-white shadow-sm text-neutral-900 transition-all duration-200 outline-none">SAT</button>
+                                <button type="button" id="btn-boc" class="px-4 py-1.5 text-sm font-medium rounded-md text-neutral-500 hover:text-neutral-700 transition-all duration-200 outline-none">Bocconi Test</button>
+                            </div>
+                        </div>
+                        
+                        <form id="calcForm" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-1.5">
+                                    <label id="testLabel" for="sat" class="block text-sm font-medium text-neutral-600">SAT Score</label>
+                                    <div class="tooltip-container cursor-help" onclick="toggleTooltip(this)">
+                                        <i data-lucide="info" class="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600 transition-colors pointer-events-none"></i>
+                                        <div id="testTooltip" class="tooltip-text">
+                                            Enter your total SAT score.
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="number" id="sat" required min="1000" max="1600" step="10" placeholder="1440" 
+                                    class="w-full bg-white/90 border border-neutral-300 rounded-lg px-4 py-2.5 text-base md:text-sm focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 outline-none transition-colors">
+                                <p id="testRangeText" class="text-xs text-neutral-500">Range: 1000-1600</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-1.5">
+                                    <label for="gpa" class="block text-sm font-medium text-neutral-600">GPA (10th & 11th grade)</label>
+                                    <div class="tooltip-container cursor-help" onclick="toggleTooltip(this)">
+                                        <i data-lucide="info" class="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600 transition-colors pointer-events-none"></i>
+                                        <div class="tooltip-text">
+                                            Average grade from the 2nd and 3rd year of high school
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="number" id="gpa" required step="0.01" min="0" max="10" placeholder="9.5" 
+                                    class="w-full bg-white/90 border border-neutral-300 rounded-lg px-4 py-2.5 text-base md:text-sm focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 outline-none transition-colors">
+                                <p class="text-xs text-neutral-500">Scale: 0-10</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="course" class="block text-sm font-medium text-neutral-600">Program</label>
+                                <select id="course" class="w-full bg-white/90 border border-neutral-300 rounded-lg px-4 py-2.5 text-base md:text-sm focus:ring-2 focus:ring-neutral-900 outline-none transition-colors appearance-none cursor-pointer">
+                                    <option value="BIEM">BIEM</option>
+                                    <option value="BIEF">BIEF</option>
+                                    <option value="BEMACS">BEMACS</option>
+                                    <option value="BESS">BESS</option>
+                                    <option value="BIG">BIG</option>
+                                    <option value="BAI">BAI</option>
+                                </select>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label for="session" class="block text-sm font-medium text-neutral-600">Session</label>
+                                <select id="session" class="w-full bg-white/90 border border-neutral-300 rounded-lg px-4 py-2.5 text-base md:text-sm focus:ring-2 focus:ring-neutral-900 outline-none transition-colors appearance-none cursor-pointer">
+                                    <option value="Early">Early</option>
+                                    <option value="Winter" selected>Winter</option>
+                                    <option value="Spring">Spring</option>
+                                </select>
+                            </div>
+                            
+                            <div class="md:col-span-4 mt-2">
+                                <button type="submit" id="submitBtn" class="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium rounded-lg px-8 py-3 shadow-md hover:shadow-lg transition-all duration-200">
+                                    Calculate Chances
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultSection" class="hidden space-y-8 animate-in">
+                
+                <div id="riskCard" class="backdrop-blur-md border rounded-xl p-8 md:p-10 shadow-lg relative overflow-hidden transition-colors duration-300">
+                    <div class="space-y-6 relative z-10">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <p class="text-xs tracking-widest text-neutral-600 uppercase font-semibold">Statistical Status</p>
+                            </div>
+                            <h2 id="zoneTitle" class="text-4xl font-bold tracking-tight uppercase"></h2>
+                        </div>
+                        
+                        <div id="zoneReason" class="text-base leading-relaxed font-medium"></div>
+                        
+                        <div id="recommendationBox" class="pt-4 border-t border-black/10 hidden">
+                            <p id="recLabel" class="font-semibold mb-1 text-sm">Recommendation:</p>
+                            <p id="targetAdvice" class="text-sm leading-relaxed opacity-90"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4" id="historicalDataWrapper">
+                    <div class="flex items-center gap-2 mb-6">
+                        <i data-lucide="database" class="w-5 h-5 text-neutral-600"></i>
+                        <h3 class="text-lg font-medium text-neutral-800 flex items-center gap-2">
+                            Nearest Historical Profiles <span id="selectedCourseLabel" class="text-neutral-500 font-normal"></span>
+                            <div class="tooltip-container tooltip-historical cursor-help" onclick="toggleTooltip(this)">
+                                <i data-lucide="info" class="w-4 h-4 text-neutral-400 hover:text-neutral-600 transition-colors pointer-events-none"></i>
+                                <div class="tooltip-text font-normal text-left">
+                                    <p>The historical profiles shown above come from previous Bocconi admission cycles.</p>
+                                    <p>As you may notice, some applicants with lower scores were admitted in earlier cycles, while in more recent years admission thresholds appear to have increased. This reflects the growing competitiveness of Bocconi's undergraduate admissions.</p>
+                                    <p>It is also possible to observe that even within the same session some applicants with higher scores were rejected while others with slightly lower scores were admitted. The exact ranking methodology used by Bocconi is not publicly disclosed, so the reasons for these outcomes cannot be determined with certainty.</p>
+                                    <p>For this reason, historical results should be interpreted as context rather than guarantees. Scores that were admitted in previous cycles may not necessarily be sufficient in future ones.</p>
+                                    <p>In general, the most reliable way to increase your chances is to improve your SAT score and maintain a strong academic record.</p>
+                                </div>
+                            </div>
+                        </h3>
+                    </div>
+                    
+                    <div id="tablesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-neutral-50/80 backdrop-blur-sm border border-neutral-300/60 rounded-xl p-6 md:p-8 shadow-sm relative overflow-hidden mt-8">
+                <div class="absolute inset-0 opacity-[0.05]" style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"></div>
+                
+                <div class="relative">
+                    <h4 class="text-xs tracking-widest text-neutral-700 mb-5 font-semibold uppercase">Important Notes</h4>
+                    <div class="space-y-4 text-sm text-neutral-700 leading-relaxed mb-6">
+                        <p class="flex items-start gap-3"><span class="text-neutral-400 mt-1 font-bold">•</span> <span>This calculator is based on historical data from 600+ applicant profiles collected across recent Bocconi admission cycles.</span></p>
+                        <p class="flex items-start gap-3"><span class="text-neutral-400 mt-1 font-bold">•</span> <span>Bocconi evaluates candidates primarily based on SAT/Bocconi Test (55%) and GPA from the final years of high school (45%), although the full selection methodology is not publicly disclosed.</span></p>
+                        <p class="flex items-start gap-3"><span class="text-neutral-400 mt-1 font-bold">•</span> <span>Admission thresholds tend to increase every year as the number of applicants continues to grow.</span></p>
+                        <p class="flex items-start gap-3"><span class="text-neutral-400 mt-1 font-bold">•</span> <span>Historical data shows that applicants with higher scores are sometimes rejected while others with slightly lower scores are admitted.</span></p>
+                        <p class="flex items-start gap-3"><span class="text-neutral-400 mt-1 font-bold">•</span> <span>Some historical records may contain reporting bias, as applicant results are collected from multiple public sources and community reports.</span></p>
+                    </div>
+                    
+                    <div class="border-t border-neutral-300/70 pt-5">
+                        <p class="text-neutral-900 font-semibold text-[15px]">Results should be interpreted as statistical estimates rather than guarantees of admission.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-5xl mx-auto mt-12">
+                <div class="bg-white border border-neutral-200 rounded-xl p-8 md:p-10 shadow-md relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-[0.02]" style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"></div>
+                    <div class="absolute inset-0 opacity-[0.015] pointer-events-none" style="background-image: url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E&quot;);"></div>
+                    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.4), transparent 70%);"></div>
+                    <div class="relative flex flex-col md:flex-row items-center md:items-start gap-8">
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-neutral-500 text-xs tracking-widest uppercase mb-4 font-semibold">About the author</h3>
+                            <p class="text-neutral-700 leading-relaxed mb-6">
+                                Hi, I'm Marcin and I’m a 2nd year BIEM student at Bocconi. I was exactly where you are a few years ago, so I built this tool to help you better understand your chances of admission. If you need any advice with your application, feel free to reach out. I might have some tips for you :)
+                            </p>
+                            <div class="flex items-center justify-center md:justify-start gap-3 mt-4">
+                                <a href="https://www.linkedin.com/in/marcin-zielinski-b208822bb/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-blue-600 transition-colors">
+                                    <i data-lucide="linkedin" class="w-4 h-4 flex-shrink-0"></i>
+                                    <span>LinkedIn</span>
+                                </a>
+                                <span class="text-neutral-300">•</span>
+                                <a href="https://www.instagram.com/marzielinski/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-pink-600 transition-colors">
+                                    <i data-lucide="instagram" class="w-4 h-4 flex-shrink-0"></i>
+                                    <span>Instagram</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 order-first md:order-last flex flex-col items-center gap-3">
+                            <div class="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden shadow-xl ring-4 ring-neutral-100 bg-neutral-200">
+                                <img src="photo.png" alt="Bocconi Student" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="py-8 px-6 border-t border-neutral-200/50 mt-auto">
+            <div class="max-w-5xl mx-auto text-center text-xs text-neutral-500 space-y-2">
+                <p class="font-medium">© 2026 Bocconi Admission Calculator</p>
+                <p>This tool is <strong>not affiliated with Bocconi University</strong>.</p>
+                <p>Data is for informational purposes only and does not guarantee admission.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentTestType = 'SAT';
+
+        const btnSat = document.getElementById('btn-sat');
+        const btnBoc = document.getElementById('btn-boc');
+        const input = document.getElementById('sat');
+        const label = document.getElementById('testLabel');
+        const tooltip = document.getElementById('testTooltip');
+        const rangeText = document.getElementById('testRangeText');
+
+        function setTestType(type) {
+            currentTestType = type;
+            input.value = ''; 
+            
+            if (type === 'SAT') {
+                btnSat.className = "px-4 py-1.5 text-sm font-semibold rounded-md bg-white shadow-sm text-neutral-900 transition-all duration-200 outline-none";
+                btnBoc.className = "px-4 py-1.5 text-sm font-medium rounded-md text-neutral-500 hover:text-neutral-700 transition-all duration-200 outline-none";
+                
+
+                label.innerText = 'SAT Score';
+                input.min = '1000';
+                input.max = '1600';
+                input.step = '10';
+                input.placeholder = '1440';
+                rangeText.innerText = 'Range: 1000-1600';
+                tooltip.innerText = 'Enter your total SAT score.';
+            } else {
+                btnBoc.className = "px-4 py-1.5 text-sm font-semibold rounded-md bg-white shadow-sm text-neutral-900 transition-all duration-200 outline-none";
+                btnSat.className = "px-4 py-1.5 text-sm font-medium rounded-md text-neutral-500 hover:text-neutral-700 transition-all duration-200 outline-none";
+                
+                label.innerText = 'Bocconi Test';
+                input.min = '10';
+                input.max = '50';
+                input.step = '0.01';
+                input.placeholder = '38.5';
+                rangeText.innerText = 'Range: 10-50';
+                tooltip.innerText = 'Enter your total Bocconi Test score.';
+            }
+        }
+
+        btnSat.addEventListener('click', () => setTestType('SAT'));
+        btnBoc.addEventListener('click', () => setTestType('Bocconi'));
+
+        function toggleTooltip(element) {
+            document.querySelectorAll('.tooltip-container').forEach(el => {
+                if (el !== element) el.classList.remove('active');
+            });
+            element.classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.tooltip-container')) {
+                document.querySelectorAll('.tooltip-container').forEach(el => {
+                    el.classList.remove('active');
+                });
+            }
+        });
+
+        document.getElementById('calcForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerText;
+            btn.innerText = "Processing Data...";
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+
+            const payload = {
+                sat: document.getElementById('sat').value,
+                gpa: document.getElementById('gpa').value,
+                course: document.getElementById('course').value,
+                session: document.getElementById('session').value
+            };
+
+            document.getElementById('selectedCourseLabel').innerText = `(${payload.course})`;
+
+            try {
+                const res = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showResults(data);
+                setTimeout(() => {
+                    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+
+            } catch(err) {
+                alert("Connection error. Ensure backend is running.");
+                console.error(err);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+            }
+        });
+
+        function showResults(data) {
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.remove('hidden');
+
+            const zoneTitle = document.getElementById('zoneTitle');
+            const riskCard = document.getElementById('riskCard');
+            const reasonEl = document.getElementById('zoneReason');
+            const adviceEl = document.getElementById('targetAdvice');
+            const recLabel = document.getElementById('recLabel');
+            const recBox = document.getElementById('recommendationBox');
+            const apiZone = data.Status.Zone;
+
+            riskCard.className = "backdrop-blur-md border rounded-xl p-8 md:p-10 shadow-lg relative overflow-hidden transition-colors duration-300";
+            zoneTitle.className = "text-4xl font-bold tracking-tight uppercase";
+            reasonEl.className = "text-base leading-relaxed font-medium";
+            recLabel.className = "font-semibold mb-1 text-sm";
+            adviceEl.className = "text-sm leading-relaxed opacity-90";
+
+            if (apiZone === "Safe") {
+                zoneTitle.innerText = "GOOD POSITION";
+                riskCard.classList.add("bg-emerald-50/80", "border-emerald-200");
+                zoneTitle.classList.add("text-emerald-900");
+                reasonEl.classList.add("text-emerald-900");
+                adviceEl.classList.add("text-emerald-900");
+                recLabel.classList.add("text-emerald-900");
+            } 
+            else if (apiZone === "Competitive") {
+                zoneTitle.innerText = "COMPETITIVE";
+                riskCard.classList.add("bg-amber-50/80", "border-amber-200");
+                zoneTitle.classList.add("text-amber-900");
+                reasonEl.classList.add("text-amber-900");
+                adviceEl.classList.add("text-amber-900");
+                recLabel.classList.add("text-amber-900");
+            } 
+            else { 
+                zoneTitle.innerText = "HIGH RISK";
+                riskCard.classList.add("bg-red-50/80", "border-red-200");
+                zoneTitle.classList.add("text-red-900");
+                reasonEl.classList.add("text-red-900");
+                adviceEl.classList.add("text-red-900");
+                recLabel.classList.add("text-red-900");
+            }
+
+            reasonEl.innerText = data.Status.Reason;
+
+            if (data.Status.Target_Advice) {
+                recBox.classList.remove('hidden');
+                adviceEl.innerText = data.Status.Target_Advice;
+            } else {
+                recBox.classList.add('hidden');
+            }
+
+            const testHeader = currentTestType === 'SAT' ? 'SAT' : 'TEST';
+
+            const container = document.getElementById('tablesContainer');
+            container.innerHTML = "";
+            const years = ['26-27','25-26','24-25'];
+            let hasData = false;
+
+            years.forEach(year => {
+                const yearData = data.Historical_Data[year];
+                if(!yearData || yearData.length === 0) return;
+                hasData = true;
+
+                let tableRows = "";
+                yearData.forEach(row => {
+                    const isAccept = row.Decision === 'accept';
+                    const decClass = isAccept ? 'text-teal-600 font-semibold' : 'text-neutral-400 font-semibold';
+                    tableRows += `
+                        <div class="grid grid-cols-4 gap-2 text-sm items-center py-2 border-b border-neutral-100 last:border-0 hover:bg-neutral-50/50 transition-colors">
+                            <div class="text-neutral-900 font-medium">${row.SAT}</div>
+                            <div class="text-neutral-900 font-medium">${row.GPA}</div>
+                            <div class="${decClass}">${row.Decision.toUpperCase()}</div>
+                            <div class="text-neutral-500 text-xs">${row.Session}</div>
+                        </div>
+                    `;
+                });
+
+                const tableHTML = `
+                    <div class="bg-white border border-neutral-200 rounded-xl p-6 shadow-sm">
+                        <h4 class="font-semibold text-neutral-900 mb-6 text-center">Cycle ${year}</h4>
+                        <div class="grid grid-cols-4 gap-2 text-xs text-neutral-500 uppercase tracking-wide mb-2 pb-2 border-b border-neutral-200">
+                            <div>${testHeader}</div>
+                            <div>GPA</div>
+                            <div>STATUS</div>
+                            <div>SESSION</div>
+                        </div>
+                        <div class="space-y-1 mt-3">
+                            ${tableRows}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += tableHTML;
+            });
+
+            if(!hasData) {
+                document.getElementById('historicalDataWrapper').classList.add('hidden');
+            } else {
+                document.getElementById('historicalDataWrapper').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
