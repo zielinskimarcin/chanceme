@@ -1,11 +1,9 @@
-# System files
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
 
-# Python
 __pycache__/ 
 *.py[cod]
 *$py.class
@@ -13,5 +11,10 @@ venv/
 env/
 .env
 
-# Vercel
 .vercel/
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
