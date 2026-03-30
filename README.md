@@ -11,7 +11,7 @@ A web application that estimates Bocconi University admission probabilities base
 * **Infrastructure:** Deployed via Vercel using Serverless Functions (`/api` routing) for scalable backend execution without dedicated servers.
 
 ## Tech Stack
-
+ 
 * Python (Data Analysis, KNN)
 * HTML / CSS / JavaScript
 * Vercel (Serverless Deployment)
