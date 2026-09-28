@@ -7,6 +7,12 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+VALID_COURSES = {
+    'BAI', 'BEMACC', 'BEMACS', 'BESS', 'BGL', 'BIEF',
+    'BIEM', 'BIG', 'CLEACC', 'CLEAM', 'CLMG'
+}
+VALID_SESSIONS = {'Early', 'Winter', 'Spring'}
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 path_sat_api = os.path.join(current_dir, 'bocconi_master_dataset.csv')
@@ -289,19 +295,43 @@ def calculate_chances_bt(user_bt, user_gpa, course, user_session):
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate():
-    data = request.json
-    
-    score = float(data.get('sat')) 
-    gpa = float(data.get('gpa'))
+    data = request.get_json(silent=True) or {}
+
+    try:
+        score = float(data.get('sat'))
+        gpa = float(data.get('gpa'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'SAT/Bocconi Test score and GPA must be numbers.'}), 400
+
     course = data.get('course')
     session = data.get('session', 'Winter')
-    
+
+    if course not in VALID_COURSES:
+        return jsonify({'error': 'Unknown Bocconi program.'}), 400
+    if session not in VALID_SESSIONS:
+        return jsonify({'error': 'Unknown admission session.'}), 400
+    if not 0 <= gpa <= 10:
+        return jsonify({'error': 'GPA must be between 0 and 10.'}), 400
+    if score <= 50 and not 10 <= score <= 50:
+        return jsonify({'error': 'Bocconi Test score must be between 10 and 50.'}), 400
+    if score > 50 and not 1000 <= score <= 1600:
+        return jsonify({'error': 'SAT score must be between 1000 and 1600.'}), 400
+
     if score <= 50:
         result = calculate_chances_bt(score, gpa, course, session)
     else:
         result = calculate_chances_sat(score, gpa, course, session)
-        
+
     return jsonify(result)
+
+
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({
+        'status': 'ok',
+        'sat_profiles': len(df_sat),
+        'bocconi_test_profiles': len(df_bt),
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
