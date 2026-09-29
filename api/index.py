@@ -142,7 +142,11 @@ def calculate_chances_sat(user_sat, user_gpa, course, user_session):
                              (df_year['SAT'] > user_sat)]
             if not df_acc.empty:
                 target = df_acc.sort_values('SAT').iloc[0]
-                target_sat_info = f"To improve statistical probability with a GPA of {target['GPA']}, aim for a SAT score of ~{target['SAT']:.0f}."
+                target_sat_info = (
+                    "Among accepted profiles with GPAs close to yours, "
+                    f"the lowest higher SAT score was ~{target['SAT']:.0f} "
+                    f"(profile GPA: {target['GPA']})."
+                )
             else:
                 df_acc_w = df_year[(df_year['Decision'] == 'accept') & 
                                    (df_year['GPA'] >= user_gpa - 0.4) & 
@@ -283,7 +287,11 @@ def calculate_chances_bt(user_bt, user_gpa, course, user_session):
                              (df_year['Bocconi_Test'] > user_bt)]
             if not df_acc.empty:
                 target = df_acc.sort_values('Bocconi_Test').iloc[0]
-                target_info = f"To improve statistical probability with a GPA of {target['GPA']}, aim for a Bocconi Test score of ~{target['Bocconi_Test']:.1f}."
+                target_info = (
+                    "Among accepted profiles with GPAs close to yours, "
+                    f"the lowest higher Bocconi Test score was ~{target['Bocconi_Test']:.1f} "
+                    f"(profile GPA: {target['GPA']})."
+                )
             else:
                 target_info = "Data indicates that an improvement in both GPA and Bocconi Test score is statistically necessary."
                     

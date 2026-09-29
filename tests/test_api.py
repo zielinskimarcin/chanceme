@@ -25,6 +25,10 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn(response.get_json()['Status']['Zone'], {
             'Safe', 'Competitive', 'High Risk', 'Unknown'
         })
+        advice = response.get_json()['Status']['Target_Advice'] or ''
+        self.assertNotIn('with a GPA of', advice)
+        if advice:
+            self.assertIn('GPAs close to yours', advice)
 
     def test_bocconi_test_calculation(self):
         response = self.client.post('/api/calculate', json={
@@ -34,6 +38,8 @@ class ApiTestCase(unittest.TestCase):
             'session': 'Winter',
         })
         self.assertEqual(response.status_code, 200)
+        advice = response.get_json()['Status']['Target_Advice'] or ''
+        self.assertNotIn('with a GPA of', advice)
 
     def test_invalid_payload_returns_400(self):
         response = self.client.post('/api/calculate', json={})
