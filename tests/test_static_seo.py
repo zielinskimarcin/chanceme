@@ -80,6 +80,15 @@ class StaticSeoTestCase(unittest.TestCase):
         self.assertIn('href="/bocconi-sat-score/"', homepage)
         self.assertIn("trackEvent('guide_opened'", homepage)
 
+    def test_homepage_snippet_control(self):
+        homepage = (ROOT / 'index.html').read_text(encoding='utf-8')
+        self.assertIn(
+            '<title>Bocconi Admission Calculator | SAT, GPA & Bocconi Test</title>',
+            homepage,
+        )
+        self.assertIn('data-nosnippet', homepage)
+        self.assertNotIn('although the full selection methodology is not publicly disclosed', homepage)
+
     def test_bocconi_test_guide_metadata_and_claims(self):
         html = BOCCONI_TEST_GUIDE.read_text(encoding='utf-8')
         parser = MetadataParser()
