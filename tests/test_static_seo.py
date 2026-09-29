@@ -54,7 +54,7 @@ class StaticSeoTestCase(unittest.TestCase):
     def test_sat_guide_distinguishes_minimum_from_cutoff(self):
         self.assertIn('1040 overall', self.html)
         self.assertIn('520 in each SAT section', self.html)
-        self.assertIn('does not publish a guaranteed competitive SAT cutoff', self.html)
+        self.assertIn('does not publish a score that guarantees admission', self.html)
         self.assertIn('not affiliated with Bocconi University', self.html)
 
     def test_sat_guide_links_official_sources(self):
