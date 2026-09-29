@@ -185,7 +185,7 @@
                 <div class="absolute -top-2 -left-2 w-16 h-16 border-l-2 border-t-2 border-neutral-300 rounded-tl-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                 <div class="absolute -bottom-2 -right-2 w-16 h-16 border-r-2 border-b-2 border-neutral-300 rounded-br-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                 
-                <div class="bg-white/80 backdrop-blur-md border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-lg shadow-neutral-200/50 relative overflow-hidden">
+                <div id="calculator" class="bg-white/80 backdrop-blur-md border border-neutral-200 rounded-2xl p-6 md:p-8 shadow-lg shadow-neutral-200/50 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-violet-50/20 pointer-events-none"></div>
                     
                     <div class="relative">
@@ -305,6 +305,17 @@
                     </div>
                 </div>
             </div>
+
+            <section class="bg-blue-50/70 border border-blue-100 rounded-xl p-6 md:p-8 shadow-sm">
+                <p class="text-xs tracking-widest text-blue-700 mb-3 font-semibold uppercase">2027 admission guide</p>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                    <div class="max-w-2xl">
+                        <h2 class="text-2xl font-semibold tracking-tight text-neutral-900 mb-2">What SAT score do you need for Bocconi?</h2>
+                        <p class="text-sm text-neutral-600 leading-relaxed">Understand the official SAT minimums, the 55/45 test-to-GPA weighting, current application dates, and why Bocconi does not publish a guaranteed competitive cutoff.</p>
+                    </div>
+                    <a href="/bocconi-sat-score/" data-guide-link="bocconi_sat_score" class="shrink-0 inline-flex items-center justify-center rounded-lg bg-neutral-900 px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors">Read the SAT guide</a>
+                </div>
+            </section>
 
             <div class="bg-neutral-50/80 backdrop-blur-sm border border-neutral-300/60 rounded-xl p-6 md:p-8 shadow-sm relative overflow-hidden mt-8">
                 <div class="absolute inset-0 opacity-[0.05]" style="background-image: url(&quot;data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E&quot;);"></div>
@@ -603,6 +614,15 @@
                 trackEvent('cta_clicked', {
                     cta_type: link.textContent.trim().toLowerCase(),
                     destination: link.hostname
+                });
+            });
+        });
+
+        document.querySelectorAll('[data-guide-link]').forEach(link => {
+            link.addEventListener('click', () => {
+                trackEvent('guide_opened', {
+                    guide: link.dataset.guideLink,
+                    source_page: 'calculator_home'
                 });
             });
         });
