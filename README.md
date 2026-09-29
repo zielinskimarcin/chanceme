@@ -25,7 +25,7 @@ python3 -m venv .venv
 .venv/bin/python api/index.py
 ```
 
-The Flask server exposes `/api/calculate` and `/api/health`. The static site contains the calculator homepage and source-backed admission guides such as `/bocconi-sat-score/`. To test the full application locally, serve the repository root and proxy `/api` to Flask, or use the Vercel development environment.
+The Flask server exposes `/api/calculate` and `/api/health`. The static site contains the calculator homepage and source-backed admission guides at `/bocconi-sat-score/` and `/bocconi-test-score/`. To test the full application locally, serve the repository root and proxy `/api` to Flask, or use the Vercel development environment.
 
 ## Analytics and privacy
 
