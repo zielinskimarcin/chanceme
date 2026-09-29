@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
      
-    <title>Chance Me for Bocconi | Admission Calculator | Check Your Chances </title>
-    <meta name="description" content="An algorithm created by analyzing 600+ Bocconi candidates from the last 3 years, statistically analyzes your data and allows you to estimate your chances of getting in most accurately. Made by a Bocconi student.">
-    <meta name="keywords" content="Bocconi, Admission, Chance Me, Check your chances, Calculator, BIEM, BIEF, SAT, GPA, Bocconi Test">
+    <title>Bocconi Admission Calculator | SAT, GPA & Bocconi Test</title>
+    <meta name="description" content="Estimate your Bocconi admission chances using SAT or Bocconi Test scores, GPA, and 600+ historical applicant profiles. Free calculator made by a Bocconi student.">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="Marcin - Bocconi Student">
     <link rel="canonical" href="https://chance-me.com/">
 
@@ -21,6 +21,27 @@
     <meta name="twitter:title" content="Chance Me for Bocconi | Admission Calculator">
     <meta name="twitter:description" content="Stop guessing. Check your Bocconi admission chances based on 600+ historical applicant profiles.">
     <meta name="twitter:image" content="https://chance-me.com/photo.png">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Chance Me for Bocconi",
+      "url": "https://chance-me.com/",
+      "description": "A free calculator that estimates Bocconi admission chances from SAT or Bocconi Test scores, GPA, and historical applicant profiles.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Marcin Zielinski"
+      }
+    }
+    </script>
 
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="apple-touch-icon" href="/favicon.png">
@@ -153,7 +174,7 @@
                     Bocconi Admission <span class="block md:inline text-neutral-600">Calculator</span>
                 </h1>
                 <p class="text-sm text-neutral-600 max-w-2xl mx-auto md:mx-0 leading-relaxed">
-                    An algorithm created by analyzing 6+ Bocconi candidates from the last 3 years, statistically analyzes your data and allows you to estimate your chances of getting in most accurately. Made by a Bocconi student.
+                    Estimate your Bocconi admission chances using SAT or Bocconi Test scores, GPA, and 600+ historical applicant profiles from the last three admission cycles. Made by a Bocconi student.
                 </p>
             </div>
         </header>
@@ -351,6 +372,13 @@
         lucide.createIcons();
 
         let currentTestType = 'SAT';
+        let calculatorStartedTracked = false;
+
+        function trackEvent(name, parameters = {}) {
+            if (typeof window.gtag === 'function') {
+                window.gtag('event', name, parameters);
+            }
+        }
 
         const btnSat = document.getElementById('btn-sat');
         const btnBoc = document.getElementById('btn-boc');
@@ -392,6 +420,13 @@
         btnSat.addEventListener('click', () => setTestType('SAT'));
         btnBoc.addEventListener('click', () => setTestType('Bocconi'));
 
+        document.getElementById('calcForm').addEventListener('input', () => {
+            if (!calculatorStartedTracked) {
+                calculatorStartedTracked = true;
+                trackEvent('calculator_started', { test_type: currentTestType });
+            }
+        });
+
         function toggleTooltip(element) {
             document.querySelectorAll('.tooltip-container').forEach(el => {
                 if (el !== element) el.classList.remove('active');
@@ -422,6 +457,12 @@
                 session: document.getElementById('session').value
             };
 
+            trackEvent('calculator_submitted', {
+                test_type: currentTestType,
+                course: payload.course,
+                session: payload.session
+            });
+
             document.getElementById('selectedCourseLabel').innerText = `(${payload.course})`;
 
             try {
@@ -431,13 +472,22 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Unable to calculate your result.');
+                }
                 showResults(data);
+                trackEvent('calculator_completed', {
+                    test_type: currentTestType,
+                    course: payload.course,
+                    session: payload.session,
+                    result_band: data.Status.Zone
+                });
                 setTimeout(() => {
                     document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
 
             } catch(err) {
-                alert("Connection error. Ensure backend is running.");
+                alert(err.message || "Connection error. Please try again.");
                 console.error(err);
             } finally {
                 btn.innerText = originalText;
@@ -547,6 +597,15 @@
                 document.getElementById('historicalDataWrapper').classList.remove('hidden');
             }
         }
+
+        document.querySelectorAll('a[href^="https://"]').forEach(link => {
+            link.addEventListener('click', () => {
+                trackEvent('cta_clicked', {
+                    cta_type: link.textContent.trim().toLowerCase(),
+                    destination: link.hostname
+                });
+            });
+        });
     </script>
 </body>
 </html>

@@ -7,6 +7,12 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+VALID_COURSES = {
+    'BAI', 'BEMACC', 'BEMACS', 'BESS', 'BGL', 'BIEF',
+    'BIEM', 'BIG', 'CLEACC', 'CLEAM', 'CLMG'
+}
+VALID_SESSIONS = {'Early', 'Winter', 'Spring'}
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 path_sat_api = os.path.join(current_dir, 'bocconi_master_dataset.csv')
@@ -136,7 +142,11 @@ def calculate_chances_sat(user_sat, user_gpa, course, user_session):
                              (df_year['SAT'] > user_sat)]
             if not df_acc.empty:
                 target = df_acc.sort_values('SAT').iloc[0]
-                target_sat_info = f"To improve statistical probability with a GPA of {target['GPA']}, aim for a SAT score of ~{target['SAT']:.0f}."
+                target_sat_info = (
+                    "Among accepted profiles with GPAs close to yours, "
+                    f"the lowest higher SAT score was ~{target['SAT']:.0f} "
+                    f"(profile GPA: {target['GPA']})."
+                )
             else:
                 df_acc_w = df_year[(df_year['Decision'] == 'accept') & 
                                    (df_year['GPA'] >= user_gpa - 0.4) & 
@@ -277,7 +287,11 @@ def calculate_chances_bt(user_bt, user_gpa, course, user_session):
                              (df_year['Bocconi_Test'] > user_bt)]
             if not df_acc.empty:
                 target = df_acc.sort_values('Bocconi_Test').iloc[0]
-                target_info = f"To improve statistical probability with a GPA of {target['GPA']}, aim for a Bocconi Test score of ~{target['Bocconi_Test']:.1f}."
+                target_info = (
+                    "Among accepted profiles with GPAs close to yours, "
+                    f"the lowest higher Bocconi Test score was ~{target['Bocconi_Test']:.1f} "
+                    f"(profile GPA: {target['GPA']})."
+                )
             else:
                 target_info = "Data indicates that an improvement in both GPA and Bocconi Test score is statistically necessary."
                     
@@ -289,19 +303,43 @@ def calculate_chances_bt(user_bt, user_gpa, course, user_session):
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate():
-    data = request.json
-    
-    score = float(data.get('sat')) 
-    gpa = float(data.get('gpa'))
+    data = request.get_json(silent=True) or {}
+
+    try:
+        score = float(data.get('sat'))
+        gpa = float(data.get('gpa'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'SAT/Bocconi Test score and GPA must be numbers.'}), 400
+
     course = data.get('course')
     session = data.get('session', 'Winter')
-    
+
+    if course not in VALID_COURSES:
+        return jsonify({'error': 'Unknown Bocconi program.'}), 400
+    if session not in VALID_SESSIONS:
+        return jsonify({'error': 'Unknown admission session.'}), 400
+    if not 0 <= gpa <= 10:
+        return jsonify({'error': 'GPA must be between 0 and 10.'}), 400
+    if score <= 50 and not 10 <= score <= 50:
+        return jsonify({'error': 'Bocconi Test score must be between 10 and 50.'}), 400
+    if score > 50 and not 1000 <= score <= 1600:
+        return jsonify({'error': 'SAT score must be between 1000 and 1600.'}), 400
+
     if score <= 50:
         result = calculate_chances_bt(score, gpa, course, session)
     else:
         result = calculate_chances_sat(score, gpa, course, session)
-        
+
     return jsonify(result)
+
+
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({
+        'status': 'ok',
+        'sat_profiles': len(df_sat),
+        'bocconi_test_profiles': len(df_bt),
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
