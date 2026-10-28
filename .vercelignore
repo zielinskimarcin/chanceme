@@ -1,0 +1,8 @@
+qa
+.venv
+.git
+node_modules
+__pycache__
+dist
+**/__pycache__
+*.pyc

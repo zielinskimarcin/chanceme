@@ -1,0 +1,14 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('src/static/analytics.js','utf8');
+const helpers=require('../src/static/analytics.js');
+function boot({accepted=true,host='chance-me.com',path='/',gpc=false}={}){
+ const scripts=[],events=[]; const document={cookie:'',head:{appendChild:s=>scripts.push(s.src)},createElement:()=>({}),querySelectorAll:()=>[],getElementById:()=>null,addEventListener:()=>{}};
+ const window={document,navigator:{globalPrivacyControl:gpc},location:{hostname:host,origin:'https://'+host,pathname:path,search:'?score=1450',hash:'#gpa=9'},localStorage:{getItem:()=>JSON.stringify({analytics:accepted,expires:Date.now()+60000})},gtag:function(){events.push([...arguments]);}};
+ vm.runInNewContext(source,{window,Date,Set,JSON,Object});return{scripts,events,window};
+}
+test('analytics drops grades, scores, report fragments, arbitrary values and unknown dimensions',()=>{assert.deepEqual(helpers.cleanDimensions({score:1450,gpa:9,email:'private@example.com',round:'Winter',program:'Management',destination:'/report/#gpa=9'}),{program:'Management',round:'Winter'});assert.equal(helpers.safeLocation({origin:'https://chance-me.com',pathname:'/report/',search:'?score=1450',hash:'#gpa=9'}),'https://chance-me.com/report/');});
+test('rejection, GPC and preview never load measurement libraries',()=>{for(const options of [{accepted:false},{gpc:true},{host:'preview.vercel.app'}])assert.deepEqual(boot(options).scripts,[]);});
+test('accepted production sends one controlled page view with no query, fragment or referrer',()=>{const b=boot();const views=b.events.filter(e=>e[0]==='event'&&e[1]==='page_view');assert.equal(views.length,1);assert.equal(views[0][2].page_location,'https://chance-me.com/');assert.equal(views[0][2].page_referrer,'');assert.equal(b.events.find(e=>e[0]==='config')[2].send_page_view,false);assert.ok(b.scripts.some(s=>s.includes('gtag/js?id=G-TQX27XKE8K')));});
+test('calculator, GPA and report pages are never session recorded',()=>{for(const path of ['/','/report/','/bocconi-gpa-calculator/'])assert.ok(!boot({path}).scripts.some(s=>s.includes('clarity.ms')));});
+test('controlled events accept only allowlisted names and never transmit raw inputs',()=>{const b=boot();b.window.ChanceAnalytics.track('calculator_completed',{score:1450,gpa:9,test_type:'SAT',status:'estimated'});b.window.ChanceAnalytics.track('arbitrary_private_event',{score:1450});const e=b.events.at(-1);assert.equal(e[1],'calculator_completed');assert.equal(e[2].test_type,'SAT');assert.ok(!('score'in e[2]));assert.ok(!('gpa'in e[2]));});
+test('ad consent remains denied for accepted analytics',()=>{const b=boot();for(const e of b.events.filter(e=>e[0]==='consent')){assert.equal(e[2].ad_storage,'denied');assert.equal(e[2].ad_user_data,'denied');assert.equal(e[2].ad_personalization,'denied');}});

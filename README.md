@@ -77,3 +77,8 @@ The Flask server exposes `/api/calculate` and `/api/health`. To test the complet
 The static guides live at `/bocconi-sat-score/` and `/bocconi-test-score/`. This repository contains the current public implementation; changes to the admissions methodology need their own validation before release.
 
 Chance Me is an independent project and is not affiliated with Bocconi University.
+
+
+## Active Campus implementation
+
+The 2026-10-27 release moves the authored site to `src/`, the portable frozen model to `lib/engine/`, and the deployable static output to generated `public/`. The older root HTML/CSV are historical and are not the published application. Follow [the engineering contract](AGENTS.md) for commands and [the production release notes](docs/PRODUCTION-RELEASE.md) for privacy, model provenance, SEO and rollback.

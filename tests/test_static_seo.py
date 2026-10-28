@@ -1,123 +1,63 @@
+"""Regression checks for the generated deployment, not legacy root files."""
+import importlib.util
 import json
-import re
-import unittest
-from html.parser import HTMLParser
 from pathlib import Path
-
+import shutil
+import subprocess
+import tempfile
+import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-GUIDE = ROOT / 'bocconi-sat-score' / 'index.html'
-BOCCONI_TEST_GUIDE = ROOT / 'bocconi-test-score' / 'index.html'
+spec = importlib.util.spec_from_file_location('release_check', ROOT / 'scripts/check.py')
+check = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(check)
 
 
-class MetadataParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.canonical = None
-        self.description = None
-        self.title = ''
-        self._in_title = False
+class StaticReleaseTest(unittest.TestCase):
+    def test_generated_output_passes_release_gate(self):
+        self.assertEqual(check.validate(), [])
 
-    def handle_starttag(self, tag, attrs):
-        attributes = dict(attrs)
-        if tag == 'title':
-            self._in_title = True
-        if tag == 'link' and attributes.get('rel') == 'canonical':
-            self.canonical = attributes.get('href')
-        if tag == 'meta' and attributes.get('name') == 'description':
-            self.description = attributes.get('content')
+    def test_checker_rejects_wrong_build_mode(self):
+        production = json.loads((ROOT / 'public/build-manifest.json').read_text())['indexable']
+        self.assertTrue(any('indexability' in error for error in check.validate(production=not production)))
 
-    def handle_endtag(self, tag):
-        if tag == 'title':
-            self._in_title = False
+    def test_gate_catches_broken_assets_and_private_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'public'
+            shutil.copytree(ROOT / 'public', output)
+            (output / 'campus.css').unlink()
+            (output / 'snapshot.json').write_text('{}')
+            errors = check.validate(output)
+            self.assertTrue(any('campus.css' in error for error in errors), errors)
+            self.assertTrue(any('unexpected JSON' in error for error in errors), errors)
 
-    def handle_data(self, data):
-        if self._in_title:
-            self.title += data
+    def test_gate_rejects_unsafe_metadata_and_invalid_schema(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / 'public'
+            shutil.copytree(ROOT / 'public', output)
+            home = output / 'index.html'
+            html = home.read_text().replace('https://chance-me.com/"', 'https://invalid.example/"')
+            html = html.replace('"@context":"https://schema.org"', '"@context":INVALID')
+            home.write_text(html)
+            errors = check.validate(output)
+            self.assertTrue(any('canonical' in error for error in errors), errors)
+            self.assertTrue(any('JSON-LD' in error for error in errors), errors)
 
-
-class StaticSeoTestCase(unittest.TestCase):
-    def setUp(self):
-        self.html = GUIDE.read_text(encoding='utf-8')
-        self.parser = MetadataParser()
-        self.parser.feed(self.html)
-
-    def test_sat_guide_has_unique_metadata(self):
-        self.assertIn('Bocconi SAT Score', self.parser.title)
-        self.assertEqual(
-            self.parser.canonical,
-            'https://chance-me.com/bocconi-sat-score/',
-        )
-        self.assertGreater(len(self.parser.description), 100)
-        self.assertLessEqual(len(self.parser.description), 165)
-
-    def test_sat_guide_distinguishes_minimum_from_cutoff(self):
-        self.assertIn('1040 overall', self.html)
-        self.assertIn('520 in each SAT section', self.html)
-        self.assertIn('does not publish a score that guarantees admission', self.html)
-        self.assertIn('not affiliated with Bocconi University', self.html)
-
-    def test_sat_guide_links_official_sources(self):
-        self.assertIn('unibocconi.it/en/applying-bocconi', self.html)
-        self.assertIn('/sat-and-act', self.html)
-        self.assertIn('/gpa-and-high-school-curriculum', self.html)
-
-    def test_structured_data_is_valid_json(self):
-        match = re.search(
-            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
-            self.html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        data = json.loads(match.group(1))
-        self.assertEqual(data['@context'], 'https://schema.org')
-        self.assertEqual({item['@type'] for item in data['@graph']}, {'Article', 'FAQPage'})
-
-    def test_sitemap_and_homepage_link_to_guide(self):
-        sitemap = (ROOT / 'sitemap.xml').read_text(encoding='utf-8')
-        homepage = (ROOT / 'index.html').read_text(encoding='utf-8')
-        self.assertIn('https://chance-me.com/bocconi-sat-score/', sitemap)
-        self.assertIn('href="/bocconi-sat-score/"', homepage)
-        self.assertIn("trackEvent('guide_opened'", homepage)
-
-    def test_homepage_snippet_control(self):
-        homepage = (ROOT / 'index.html').read_text(encoding='utf-8')
-        self.assertIn(
-            '<title>Bocconi Admission Calculator | SAT, GPA & Bocconi Test</title>',
-            homepage,
-        )
-        self.assertIn('data-nosnippet', homepage)
-        self.assertNotIn('although the full selection methodology is not publicly disclosed', homepage)
-
-    def test_bocconi_test_guide_metadata_and_claims(self):
-        html = BOCCONI_TEST_GUIDE.read_text(encoding='utf-8')
-        parser = MetadataParser()
-        parser.feed(html)
-        self.assertIn('Bocconi Test Score', parser.title)
-        self.assertEqual(parser.canonical, 'https://chance-me.com/bocconi-test-score/')
-        self.assertGreater(len(parser.description), 100)
-        self.assertLessEqual(len(parser.description), 165)
-        self.assertIn('17 out of 50', html)
-        self.assertIn('50 questions', html)
-        self.assertIn('75 minutes', html)
-        self.assertIn('does not publish a guaranteed competitive Bocconi Test score', html)
-
-    def test_bocconi_test_guide_sources_schema_and_links(self):
-        html = BOCCONI_TEST_GUIDE.read_text(encoding='utf-8')
-        match = re.search(
-            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
-            html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match)
-        data = json.loads(match.group(1))
-        self.assertEqual({item['@type'] for item in data['@graph']}, {'Article', 'FAQPage'})
-        self.assertIn('/online-bocconi-test', html)
-        self.assertIn("guide:'bocconi_test_score'", html)
-        sitemap = (ROOT / 'sitemap.xml').read_text(encoding='utf-8')
-        homepage = (ROOT / 'index.html').read_text(encoding='utf-8')
-        self.assertIn('https://chance-me.com/bocconi-test-score/', sitemap)
-        self.assertIn('href="/bocconi-test-score/"', homepage)
+    def test_analytics_helpers_remove_inputs_and_url_fragments(self):
+        node = shutil.which('node')
+        if not node:
+            candidate = Path('/Users/mz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node')
+            node = str(candidate) if candidate.is_file() else None
+        self.assertIsNotNone(node, 'Node is required to verify the shipped analytics helper')
+        code = """
+const assert=require('node:assert/strict');
+const a=require('./public/analytics.js');
+assert.deepEqual(a.cleanDimensions({score:1450,gpa:9,email:'private@example.com',test_type:'SAT',program:'Management',round:'Winter',result_band:'stronger'}),{test_type:'SAT',program:'Management',round:'Winter',result_band:'stronger'});
+assert.deepEqual(a.cleanDimensions({test_type:'SAT:1450',program:'private free text',round:'invalid',result_band:'9.5'}),{});
+assert.equal(a.safeLocation({origin:'https://chance-me.com',pathname:'/report/',search:'?email=private@example.com',hash:'#score=1450&gpa=9'}),'https://chance-me.com/report/');
+assert.equal(a.cleanPath('/private-profile/1450'),'/404/');
+"""
+        subprocess.run([node, '-e', code], cwd=ROOT, check=True, capture_output=True, text=True)
 
 
 if __name__ == '__main__':

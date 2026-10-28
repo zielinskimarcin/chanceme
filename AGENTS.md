@@ -4,21 +4,27 @@ This repository powers `https://chance-me.com`, a Bocconi admission calculator. 
 
 ## Architecture
 
-- `index.html`: static frontend, metadata, GA4, Microsoft Clarity, and Vercel Insights.
-- `api/index.py`: Flask serverless API and admission heuristics.
-- `api/*.csv`: versioned historical input data. Treat it as unverified self-reported data, not official admissions data.
-- `vercel.json`: Vercel routing.
+- `src/pages`, `src/static`, `src/guides`: authored UI, assets and Markdown guides. These are the active sources; root-level legacy HTML/CSS/CSV are historical and are not published.
+- `scripts/build.mjs`: deterministic static build into ignored `public/`, intermediate `dist/` for regression tests. Preview builds are noindex.
+- `api/index.py`: sole Flask serverless entry point. `lib/engine/` holds the integrity-checked frozen model and minimal pseudonymous serving data; no training or source sheets at runtime.
+- `lib/report_pdf.py`: portable PDF rendering using ReportLab's packaged fonts.
+- `vercel.json`: output directory, API routing and headers.
+- `docs/PRODUCTION-RELEASE.md`: provenance, measurement contract and rollback.
 
 ## Local commands
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r api/requirements.txt
+npm ci --ignore-scripts
+npm run build:production
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python scripts/check.py --production
+npm run test:js
 .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python api/index.py
+PORT=18782 .venv/bin/python -B -m api.index
 ```
 
-Serve `index.html` from the repository root when testing the complete frontend locally; do not open it as a `file://` URL.
+Test the complete application over HTTP. Never serve the repository root or deploy the private research lab. Engine updates must regenerate the manifest through the reviewed packaging workflow and repeat prediction parity checks.
 
 ## Data and privacy rules
 

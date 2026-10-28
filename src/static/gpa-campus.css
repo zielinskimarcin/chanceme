@@ -1,0 +1,69 @@
+.gpa-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:30px;padding:42px 40px 34px;align-items:stretch}
+.gpa-main{min-width:0}.gpa-page .intro{max-width:610px}.gpa-form{padding:22px}
+.gpa-setup,.gpa-custom-bounds{display:grid;grid-template-columns:1fr 1.7fr;gap:15px}
+.gpa-custom-bounds{grid-template-columns:1fr 1fr;margin-top:15px}
+.gpa-scale-info{font-size:11px;line-height:1.5;color:var(--muted);margin:9px 0 20px;min-height:17px}
+.gpa-years{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.gpa-year{padding:16px;border:1px solid #dfe9f1;border-radius:15px;background:linear-gradient(180deg,#f7fbfd,#fff 90%);min-width:0}
+.gpa-year-heading{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.gpa-year-number{width:28px;height:28px;border:1px solid #d4e4e8;background:white;border-radius:9px;display:grid;place-items:center;font-size:12px;color:#44786d;font-weight:850;flex-shrink:0}
+.gpa-year h2{font-size:14px;font-weight:850;line-height:1.3;letter-spacing:-.1px}.gpa-year-dates{font-size:11px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.gpa-year .field+.field{margin-top:15px}.gpa-year .field select{font-size:12px;height:42px}.gpa-year .field input{font-size:15px;background:white}
+.gpa-year .field label{font-size:11px;color:#466078}.gpa-year .field-error{font-size:11px}
+.gpa-year textarea{display:block;resize:vertical;width:100%;min-height:108px;max-height:350px;border:1px solid #c8d8e6;border-radius:8px;padding:10px 12px;font:550 14px/1.55 Nunito,system-ui,sans-serif;color:var(--ink);background:white}
+.gpa-year textarea::placeholder{color:#8b9aaa}.gpa-year textarea:focus-visible{outline:3px solid #388877;outline-offset:4px}
+.gpa-entry-hint{font-size:10.5px;line-height:1.5;color:var(--muted);margin-top:8px}
+.gpa-subject-note{font-size:10px;line-height:1.5;color:var(--muted);margin-top:8px}
+.gpa-year .gpa-scale-toggle{font-size:10px;padding:0;min-height:28px;justify-content:flex-start;text-align:left;margin-top:9px}
+.gpa-year-override{margin-top:7px;padding-top:12px;border-top:1px solid #dfe9f1}.gpa-year-override .gpa-custom-bounds{gap:8px;margin-top:10px}
+.gpa-year-override .gpa-custom-bounds .field+.field{margin-top:0}.gpa-year-override .field input{font-size:13px;padding:9px 8px}
+.gpa-letter-notice{padding:12px 14px;background:#fff7e8;border-radius:10px;margin-bottom:17px;color:#775f38;font-size:12px}.gpa-letter-notice .text-button{margin-top:4px;font-size:11px}
+.gpa-letter-notice>p{line-height:1.55}.gpa-letter-notice a{color:inherit;font-weight:750;text-underline-offset:3px}.gpa-letter-notice:last-child{margin-bottom:0}
+.gpa-year .field input:disabled,.gpa-year .field select:disabled,.gpa-year textarea:disabled{background-color:#f0f3f4;border-color:#d6dfe3;color:#788b96;cursor:not-allowed;opacity:1;-webkit-text-fill-color:#788b96}.gpa-year .field input:disabled::placeholder{color:#788b96;opacity:1}.gpa-form .calculate:disabled{background:#e7eeeb;color:#768d84;box-shadow:none;cursor:not-allowed;transform:none}
+.gpa-form .calculate{margin-top:20px}.gpa-form .form-footnote{max-width:510px;margin-inline:auto}
+.gpa-result{position:relative;isolation:isolate;overflow:hidden;border-radius:90px 22px 90px 22px;background:#eaf6fe;min-width:0;min-height:420px;padding:35px 30px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;transition:background-color .5s}
+.gpa-result .ambient-one{width:112%;height:auto;aspect-ratio:1;left:25%;top:-34%;background:#d8ecfa}
+.gpa-result .ambient-two{width:105%;height:auto;aspect-ratio:1;left:-48%;bottom:-42%;background:#cfe9ed}
+.gpa-empty{max-width:310px}
+.gpa-empty-value{font-size:95px;line-height:1.1;color:#81b2bf;font-weight:650;margin:26px 0 15px}.gpa-empty h2{font-size:25px;line-height:1.2;font-weight:900;letter-spacing:-.7px}
+.gpa-empty>p{font-size:14px;color:var(--muted);margin:12px auto 0;line-height:1.6;max-width:240px}
+.gpa-year-equation{display:flex;align-items:center;justify-content:center;gap:10px;margin:32px auto 0;font-size:11px;color:#65869a}.gpa-year-equation>span{padding:9px 11px;background:#ffffff87;border-radius:9px;border:1px solid #cde0ea;font-weight:700}.gpa-year-equation>b{font-weight:600}
+.gpa-result-kicker{font-size:13px;font-weight:850}.gpa-value{display:flex;align-items:baseline;justify-content:center;gap:8px;font-size:clamp(60px,5.4vw,78px);font-weight:950;letter-spacing:-3px;line-height:1.15;margin:17px 0 24px;font-variant-numeric:tabular-nums}
+.gpa-out-of{font-size:16px;font-weight:650;letter-spacing:0;color:#5e7c89}
+.gpa-calculated{width:100%;max-width:350px}.gpa-breakdown{display:grid;grid-template-columns:1fr 1fr;border:1px solid #cde1df;border-radius:14px;padding:14px 0;background:#ffffff70}
+.gpa-breakdown>div{display:grid;gap:3px;padding:0 10px}.gpa-breakdown>div+div{border-left:1px solid #cde1df}.gpa-breakdown span{font-size:10px;color:#577981}.gpa-breakdown strong{font-size:20px;font-weight:850}.gpa-breakdown small{font-size:9px;color:#5f7b86}
+.gpa-result-note{font-size:12px;line-height:1.6;color:#54717c;max-width:290px;margin:18px auto 0}.gpa-clamped-note{font-size:11px;line-height:1.55;color:#7c6645;margin:12px 0 0}
+.gpa-calculated .calculate{font-size:12px;padding:13px 14px;margin-top:23px;gap:10px;line-height:1.3;min-height:48px}
+.gpa-back-link{font-size:11px;font-weight:700;margin-top:28px;text-decoration:none;color:#4c727b;min-height:25px;display:inline-flex;align-items:center}
+.gpa-back-link:hover{text-decoration:underline}.gpa-result[data-state="result"]{background:#e9f5f0}.gpa-result[data-state="result"] .ambient-one{background:#d8eee8}.gpa-result[data-state="result"] .ambient-two{background:#dceef7}
+.gpa-help{padding:0 40px 34px}.gpa-help>details{border-top:1px solid #dfe8ef;padding:0 1px}.gpa-help>details:last-of-type{border-bottom:1px solid #dfe8ef}
+.gpa-help summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:25px;padding:19px 0;cursor:pointer;font-size:13px;font-weight:800}.gpa-help summary::-webkit-details-marker{display:none}
+.gpa-help details>div{font-size:13px;color:var(--muted);line-height:1.75;max-width:850px;padding:0 0 20px}.gpa-help details p+p{margin-top:10px}
+.gpa-school-path{display:flex;align-items:center;gap:9px;font-weight:750;color:var(--ink);margin-top:17px}.gpa-school-path input{accent-color:var(--blue);width:16px;height:16px}
+.gpa-help .gpa-help-small{font-size:11px;margin-top:8px}.gpa-formula{font-variant-numeric:tabular-nums;color:var(--ink);background:#eff6f6;border-radius:9px;padding:12px 15px;margin:12px 0;overflow-wrap:anywhere}
+.gpa-source-note{font-size:10px;color:var(--muted);margin-top:16px}
+@media(max-width:1380px){.gpa-layout{padding-inline:32px;gap:24px}.gpa-help{padding-inline:32px}.gpa-form{padding:19px}.gpa-year{padding:14px}}
+@media(max-width:1080px) and (min-width:801px){.gpa-layout{grid-template-columns:1.6fr 1fr;padding:32px 25px;gap:20px}.gpa-form{padding:15px}.gpa-years{gap:10px}.gpa-year{padding:12px}.gpa-result{padding:28px 20px;border-radius:60px 20px 60px 20px}.gpa-year h2{font-size:12px}.gpa-year-number{width:24px;height:24px}.gpa-year-heading{gap:7px}.gpa-help{padding-inline:25px}.gpa-value{font-size:60px}}
+@media(max-width:800px){.gpa-layout{grid-template-columns:1fr;padding:30px 22px;gap:24px}.gpa-page .intro{max-width:600px}.gpa-form{padding:20px}.gpa-year{padding:17px}.gpa-result{min-height:0;padding:35px 25px;border-radius:24px 65px 24px 24px}.gpa-result[data-state="empty"]{display:none}.gpa-value{font-size:68px}.gpa-calculated{max-width:400px}.gpa-back-link{margin-top:21px}.gpa-help{padding:0 22px 28px}}
+@media(max-width:540px){.gpa-years{grid-template-columns:1fr;gap:15px}.gpa-setup{grid-template-columns:110px minmax(0,1fr);gap:12px}.gpa-year{padding:17px}.gpa-year .field select{font-size:14px}.gpa-year .field label{font-size:12px}.gpa-entry-hint{font-size:11px}.gpa-year .gpa-scale-toggle{font-size:11px}.gpa-year .field input{font-size:16px}.gpa-year textarea{font-size:16px}.gpa-scale-info{font-size:11px}.gpa-form .form-footnote{font-size:9px}}
+@media(max-width:380px){.gpa-layout{padding:25px 15px;gap:20px}.gpa-form{padding:14px}.gpa-setup{grid-template-columns:94px minmax(0,1fr);gap:10px}.gpa-setup .field label{font-size:11px}.gpa-setup .field select{font-size:12px;padding-left:9px}.gpa-year{padding:14px}.gpa-help{padding-inline:15px}.gpa-result{padding:28px 20px}.gpa-breakdown>div{padding-inline:8px}.gpa-help summary{font-size:12px}}
+
+@media(max-width:800px){.gpa-page .field input,.gpa-page .field select,.gpa-page .gpa-year textarea{font-size:16px}}
+
+/* Country/curriculum picker: local SVG flags and transcript-scale provenance. */
+.gpa-education{margin-bottom:18px}.gpa-picker{min-width:0}.gpa-country-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}
+.gpa-country-field{position:relative}.gpa-country-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;min-height:44px;width:100%;padding:9px 12px;border:1px solid #c8d8e6;border-radius:8px;background:white;color:var(--ink);font:550 13px/1.35 Nunito,system-ui,sans-serif;box-shadow:0 1px 2px #17324d02}
+.gpa-country-selected{display:flex;align-items:center;gap:9px;min-width:0}.gpa-country-selected>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gpa-country-placeholder{color:#74869b}.gpa-country-selected img,.gpa-country-option img{width:24px;height:18px;object-fit:cover;border-radius:3px;box-shadow:0 0 0 1px #17324d14;flex-shrink:0}
+.gpa-country-trigger .chevron{flex-shrink:0;width:7px;height:7px;margin-right:2px}.gpa-picker .gpa-system-field select{font-size:12px}
+.gpa-country-menu{position:absolute;z-index:60;top:calc(100% + 8px);left:0;width:min(430px,calc(100vw - 72px));max-width:calc(100vw - 40px);padding:10px;background:#fff;border:1px solid #cfdfdf;border-radius:14px;box-shadow:0 16px 50px #17324d26}
+.gpa-country-menu .gpa-country-search{background:#f6faf9;border-color:#c6ddd5;height:42px;font-size:14px;padding-inline:12px}.gpa-country-list{max-height:300px;overflow:auto;overscroll-behavior:contain;margin-top:6px;scroll-padding-block:4px;scrollbar-width:thin}.gpa-country-region{font-size:10px;letter-spacing:.6px;text-transform:uppercase;font-weight:850;color:#738a94;padding:13px 10px 5px}
+.gpa-country-option{display:flex;align-items:center;gap:11px;min-height:40px;padding:9px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:13px;font-weight:650}.gpa-country-option:hover,.gpa-country-option.is-active{background:#edf7f2}.gpa-country-option[aria-selected="true"]{background:#e2f1e9;color:#1d655c}.gpa-country-check{margin-left:auto;font-size:14px;font-weight:900}.gpa-country-no-results{font-size:12px;line-height:1.5;color:var(--muted);padding:12px 10px}
+.gpa-picker .gpa-scale-info{font-size:11px;line-height:1.55;margin:10px 0 0;min-height:0;color:#506b79}.gpa-scale-info>p:first-child{font-weight:750;color:#315b60}.gpa-scale-detail{margin-top:4px;font-size:10.5px;font-weight:500;max-width:610px}.gpa-scale-links{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:10.5px;font-weight:750}.gpa-scale-links a{color:#36796a}.gpa-scale-links .text-button{font-size:10.5px;min-height:24px;padding:0;line-height:1.4}
+.gpa-picker .gpa-custom-bounds{margin-top:10px;gap:12px}.gpa-picker .gpa-custom-bounds .field+.field{margin-top:0}.gpa-country-trigger[aria-invalid="true"]{border-color:#b24755;background:#fff9fa}
+.gpa-year-setup{grid-template-columns:minmax(100px,150px) minmax(0,1fr);align-items:center;margin-bottom:20px;padding-top:16px;border-top:1px solid #e6edee;gap:20px}.gpa-year-setup .field input{height:40px}.gpa-setup-hint{font-size:11px;line-height:1.6;color:var(--muted);max-width:220px;padding-top:15px}
+.gpa-year .gpa-country-grid{grid-template-columns:1fr}.gpa-year .gpa-country-grid .field+.field{margin-top:0}.gpa-year .gpa-country-trigger{font-size:11px}.gpa-year .gpa-scale-detail{font-size:10px}.gpa-year .gpa-country-menu{width:min(350px,calc(100vw - 90px))}.gpa-year:nth-child(2) .gpa-country-menu{left:auto;right:0}.gpa-year-override .gpa-scale-links{gap:5px 12px}
+@media(max-width:1100px){.gpa-country-grid{grid-template-columns:1fr}.gpa-layout{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}}
+@media(max-width:800px){.gpa-layout{grid-template-columns:1fr}.gpa-country-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.gpa-country-menu{max-height:min(430px,65vh)}.gpa-country-list{max-height:min(300px,45vh)}}
+@media(max-width:540px){.gpa-country-grid{grid-template-columns:1fr}.gpa-country-trigger,.gpa-picker .gpa-system-field select,.gpa-country-menu .gpa-country-search{font-size:16px;min-height:46px}.gpa-country-trigger{padding-inline:11px}.gpa-country-menu{width:100%;max-width:100%}.gpa-country-option{font-size:14px;min-height:44px}.gpa-country-list{max-height:260px}.gpa-country-region{font-size:10px}.gpa-picker .gpa-scale-info{font-size:12px}.gpa-scale-detail{font-size:11px}.gpa-scale-links,.gpa-scale-links .text-button{font-size:11px}.gpa-year-setup{grid-template-columns:110px minmax(0,1fr);gap:14px}.gpa-setup-hint{padding-top:14px;font-size:10px}.gpa-year .gpa-country-trigger{font-size:16px}.gpa-year .gpa-country-menu{width:100%}.gpa-picker .gpa-custom-bounds{grid-template-columns:1fr 1fr}}
+
+.gpa-country-selected img.gpa-ib-symbol,.gpa-country-option img.gpa-ib-symbol{object-fit:contain;background:#17324d;box-shadow:0 0 0 1px #17324d}

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "version": "source-audited-bt-curve-v14-2026-10-25",
+  "exported_at": "2026-10-28T04:44:39.915811+00:00",
+  "upstream_server_sha256": "125d8f3637dd9e6ecf5a14d4ecc6a4bebd8607cf87010d64503d80960257ef7d",
+  "upstream_model_sha256": "83e1723e2141262f8510de155a1fc0c4847c3bb5958b32aa2a02b6199539a4c5",
+  "rows": {
+    "SAT": 378,
+    "Bocconi": 93
+  },
+  "bt_fit_rows": 49,
+  "files": {
+    "learned_bt_chances.py": "c719a68763bebd4512fe50fa3ade84e01f3de04299d391c484e78b1262b99710",
+    "unified_chances.py": "37b8ba0a8e52f84901881e30f249d5c1e99b995ecaf00c665f76d622141828fd",
+    "targeted_thresholds.py": "ac53e093b36ac9de9fcf59c719052cf2d379bd48d9488bf9d6bb40ee5ef8d337",
+    "coherent_thresholds.py": "02d394f9d160bcedbf738f72f92a812dd1ef8a7a79f186585e408aca16d9d025",
+    "evidence_thresholds.py": "e9ad63158306a0738611cc1264757f973cd2eb7a5bf8b6a2be29eea0a6177674",
+    "programme_thresholds.py": "5520abc32634d50f64ac990f0e066756ab669e3ee9dd9e18a65d66e78f809f93",
+    "model.py": "a22d9885c55ebcd704f10fe3d8d78d47c38f02fa09f05fbde0ff1f25868e3a0f",
+    "model_v5.py": "119d30005e3083e512fcadf469e2968b2e21784029e951ab8964f487b0896aae",
+    "model_v6.py": "bfac234e77ebafb330b1f04dd5729f8f57f2b11c7a035ccc73a372dfcbc1c0c1",
+    "model_v7.py": "7e72d85d2c85f512d4fda4977a0a715c0d20b88b89874f5c7740a889125ab745",
+    "model_v8.py": "46925fa53b28fed33f148285631368460fa48b9048e2646b6d40955224d7d8af",
+    "pooled_v7.py": "d354cf67341cc0c4bbd2123db5d8def74fc1579a1bed98992b9cef4734537a0f",
+    "calibration_v7.py": "202ec5645339d6cb99f7d8d69cfd6e72f8bb98e3e768352a9dc904667a2325dc",
+    "legacy/data.py": "f9f5f3ab338801dabfe5428d01cb72838d0e5dd379241cf04b974ed5d74dc3b5",
+    "legacy/programs.py": "867c744d5beb7cf6252c183be5c55c65171a03b487a2ceb6b4dfff768304ca0f",
+    "legacy/experimental.py": "0bbba6ea80a3d6b869f75d2eb780bcd0c8cf2bc55d4bdcaaddd11f2ec277137d",
+    "server.py": "d205ea4d22c612698e7f6f91eb8d4e05384e7616ecddab5734a3588818e2f05d",
+    "release/snapshot.json": "d37c7177a2d9da49df91300a848c608e9d773b9092a3eef6f1bd5c8482b47881",
+    "release_loader.py": "d4ccbbba14ae0ae46b05799c9daebb9b6a4c1d12475463a3d895f271975996a6"
+  },
+  "privacy": "No raw source snapshots, respondent timestamps, free text or contact identifiers.",
+  "contract": "Frozen coefficients and full estimate response preserved; no fitting at runtime."
+}

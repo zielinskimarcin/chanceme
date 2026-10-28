@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f8fafc">
+  <title>Bocconi GPA Calculator | Chance Me</title>
+  <meta name="description" content="Estimate a GPA from your school grades or combine your two Bocconi GPA results, then use it in the Chance Me admission calculator.">
+  <link rel="icon" href="/assets/favicon-c-32.png?v=calculator" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon-c-16.png?v=calculator" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon-c.png?v=calculator" sizes="180x180">
+  <link rel="preload" href="/assets/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/campus.css">
+  <link rel="stylesheet" href="/gpa-campus.css">
+  <script src="/gpa-systems.js" defer></script>
+  <script src="/gpa-picker.js" defer></script>
+  <script src="/gpa-math.js" defer></script>
+  <script src="/gpa-campus.js" defer></script>
+</head>
+<body class="gpa-page">
+  <a class="skip-link" href="#gpa-form">Skip to GPA calculator</a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="/#calculator" aria-label="Chance Me for Bocconi — calculator"><div class="brand-copy"><span class="brand-name">chance me</span><span class="brand-subtitle">for <img src="/assets/bocconi-wordmark.svg" width="65" height="14" alt="Bocconi"></span></div></a>
+      <button class="menu-toggle" id="menu-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span></button>
+      <nav id="main-nav" aria-label="Main navigation">
+        <a href="/#calculator">Calculator</a>
+        <a class="current" href="/bocconi-gpa-calculator/" aria-current="page">GPA calculator</a>
+        <a href="/sat-tutoring/">SAT lessons</a>
+        <div class="nav-dropdown" id="guides-dropdown">
+          <button id="guides-toggle" class="guides-toggle" type="button" aria-expanded="false" aria-controls="guides-panel">Guides <span class="chevron" aria-hidden="true"></span></button>
+          <div class="guides-panel" id="guides-panel" hidden>
+            <a href="/bocconi-sat-score/"><span>SAT for Bocconi</span><span aria-hidden="true">→</span></a>
+            <a href="/bocconi-test-score/"><span>Bocconi Test guide</span><span aria-hidden="true">→</span></a>
+            <a href="/bocconi-gpa-calculator/"><span>Understanding your GPA</span><span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <a href="/#about">About</a>
+      </nav>
+    </header>
+    <main>
+      <section class="gpa-layout" aria-labelledby="page-title">
+        <div class="gpa-main">
+          <div class="hero-copy"><h1 id="page-title">Bocconi<br>GPA calculator</h1><p class="intro">Convert your school grades to a GPA estimate, or combine your two results from Bocconi.</p></div>
+          <form id="gpa-form" class="calculator-form gpa-form" novalidate>
+            <div id="common-scale-field" class="gpa-education"><div id="main-school-picker"></div></div>
+            <div id="gpa-year-setup" class="gpa-setup gpa-year-setup"><div class="field"><label for="graduation">Graduation year</label><input id="graduation" type="number" min="2000" max="2100" value="2027" inputmode="numeric"><p class="field-error" id="graduation-error" hidden></p></div><p class="gpa-setup-hint">Use the grading system on each year’s transcript.</p></div>
+            <div class="gpa-letter-notice" id="letter-notice" hidden><p id="portal-instructions">This scale needs <a href="https://apply.unibocconi.it/" target="_blank" rel="noopener noreferrer">Bocconi’s GPA calculator ↗</a>.</p><button type="button" class="text-button" id="use-portal-values">I already have my GPA →</button></div>
+            <div id="gpa-years" class="gpa-years"></div>
+            <p id="gpa-error" class="form-error" role="alert" hidden></p>
+            <button id="calculate-gpa" class="calculate" type="submit">Calculate GPA <span aria-hidden="true">→</span></button>
+            <p id="gpa-form-note" class="form-footnote">School-grade conversions are estimates. Your application uses Bocconi’s own calculation.</p>
+          </form>
+        </div>
+        <aside class="gpa-result" id="gpa-result" aria-label="Your GPA result" data-state="empty">
+          <div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div>
+          <div class="gpa-empty" id="gpa-empty"><div class="gpa-empty-value" aria-hidden="true">—</div><h2>Your GPA will appear here.</h2><p>Add both school years to see the result.</p><div class="gpa-year-equation" aria-hidden="true"><b>(</b><span>Year 1</span><b>+</b><span>Year 2</span><b>) ÷ 2</b></div></div>
+          <div id="gpa-calculated" class="gpa-calculated" hidden>
+            <p class="gpa-result-kicker" id="gpa-result-kicker">Estimated GPA</p><div class="gpa-value"><span id="gpa-result-value"></span><span class="gpa-out-of">/ 10</span></div>
+            <div id="gpa-breakdown" class="gpa-breakdown"></div><p id="gpa-result-note" class="gpa-result-note"></p><p id="gpa-clamped-note" class="gpa-clamped-note" hidden></p>
+            <button id="use-gpa" class="calculate" type="button">Use in admission calculator <span aria-hidden="true">→</span></button><p id="gpa-transfer-error" class="gpa-result-note" role="status" hidden></p>
+          </div>
+          <a class="gpa-back-link" href="/#calculator">Back to admission chances →</a>
+        </aside>
+      </section>
+      <section id="gpa-help" class="gpa-help" aria-label="GPA guidance">
+        <details><summary>Which grades count? <span class="chevron" aria-hidden="true"></span></summary><div><p>Use final annual grades, or the final term if there is no annual grade. Use the unweighted average when it is already printed on your transcript. Otherwise enter subjects. Exclude PE, religion, ethics, conduct and military training; for IB, also TOK, CAS and EE. Include music and art.</p><label class="gpa-school-path"><input id="eleven-year" type="checkbox"> My school programme lasts 11 years</label><p class="gpa-help-small">11-year diplomas use grades 10 and 11. The year labels above will adjust. For repeats, missing transcripts or unusual school paths, check <a href="https://www.unibocconi.it/en/applying-bocconi/bachelor-and-law-programs/application-and-admissions/gpa-and-high-school-curriculum" target="_blank" rel="noopener noreferrer">Bocconi’s transcript guidance ↗</a>.</p></div></details>
+        <details><summary>Where is the official calculator? <span class="chevron" aria-hidden="true"></span></summary><div><p>It is inside your <a href="https://apply.unibocconi.it/" target="_blank" rel="noopener noreferrer">Bocconi application ↗</a>, in the two GPA calculation tasks. Calculate each year there, then select “Bocconi GPA” above to combine the results for Chance Me.</p><a href="https://www.unibocconi.it/sites/default/files/media/attachments/GPA%20calculator%20guida_new_202728_0.pdf" target="_blank" rel="noopener noreferrer">Official GPA guide 2027/28 ↗</a></div></details>
+        <details><summary>How is the estimate calculated? <span class="chevron" aria-hidden="true"></span></summary><div><p>Country presets use source-checked secondary-school scales. Your transcript takes priority if its rules differ. For numeric school grades, we use a linear estimate from the passing grade (6) to the best grade (10), then average the two years equally.</p><p class="gpa-formula">6 + 4 × (grade − passing grade) ÷ (best grade − passing grade)</p><p>Individual grades below passing are treated as passing and flagged in the result. Values beyond the best grade are rejected. This formula is our estimate; Bocconi does not publish its full country conversion tables here. Letter grades, rank scales and mixed subject scales use the two values from Bocconi’s application.</p></div></details>
+        <p class="gpa-source-note">School-scale sources checked 25 October 2026. Use school reports, not university grades or entrance-exam scores. <a href="/gpa-school-sources/" target="_blank" rel="noopener">View sources ↗</a><br>GPA guidance follows Bocconi’s 2027/28 instructions for international applicants.</p>
+      </section>
+      <p class="sr-only" id="gpa-announcement" role="status" aria-live="polite"></p>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-main"><a class="footer-wordmark" href="/#calculator">chance me</a><p>Independent tool · Not affiliated with Bocconi</p><a href="/#how-it-works">How it works</a></div>
+      <nav class="footer-guides" aria-label="Admissions guides"><span>Guides</span><a href="/bocconi-sat-score/">SAT for Bocconi</a><a href="/bocconi-test-score/">Bocconi Test guide</a><a href="/bocconi-gpa-calculator/">GPA calculator</a></nav>
+    </footer>
+  </div>
+  <noscript><div class="noscript">JavaScript is needed to calculate GPA. The guidance and official links remain available.</div></noscript>
+</body>
+</html>

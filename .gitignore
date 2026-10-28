@@ -25,3 +25,10 @@ Thumbs.db
 
 .vscode/
 .idea/
+
+node_modules/
+public/
+dist/
+qa/
+.vercel
+.env*
