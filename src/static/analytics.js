@@ -2,7 +2,6 @@
 (function(root){
  'use strict';
  const paths=new Set(['/','/bocconi-gpa-calculator/','/sat-tutoring/','/bocconi-sat-score/','/bocconi-test-score/','/report/','/privacy/','/gpa-school-sources/']);
- const events=new Set(['page_view','calculator_started','calculator_submitted','calculator_completed','calculator_failed','gpa_started','gpa_calculated','gpa_transferred','cta_clicked','guide_opened','guide_cta_clicked','booking_cta_click','booking_submitted','whatsapp_click','pdf_download','full_report_opened']);
  const dimensions={test_type:['SAT','Bocconi'],program:['Management','Finance','Management and Computer Science','Management for the Arts and Cultures','International Politics and Government','Mathematical and Computing Sciences for Artificial Intelligence'],round:['Early','Winter'],status:['estimated','ineligible','invalid','unsupported'],result_band:['lower','balanced','stronger'],position:['header','hero','content','footer'],destination:['calculator','gpa','lessons','booking','whatsapp','sat_guide','bocconi_test_guide','report','pdf'],reason:['unavailable'],guide:['bocconi_sat_score','bocconi_test_score']};
  function cleanPath(path){return paths.has(path)?path:'/404/';}
  function cleanDimensions(input){const out={};for(const [key,allowed] of Object.entries(dimensions))if(allowed.includes(input?.[key]))out[key]=input[key];return out;}
@@ -23,10 +22,9 @@
    const previous=JSON.parse(root.localStorage.getItem(LEGACY));
    if(previous?.expires>Date.now()&&previous.analytics===false){optedOut=true;root.localStorage.setItem(KEY,'1');}
   }
-  root.localStorage.removeItem(LEGACY);
-  // We never use Vercel's optional identify/group features or persist visitor IDs.
-  root.localStorage.removeItem('__va_attribution');
  }catch{}
+ // Cleanup is independent of parsing an old or malformed preference.
+ try{root.localStorage.removeItem(LEGACY);root.localStorage.removeItem('__va_attribution');}catch{}
  function clearLegacyCookies(){
   if(!production)return;
   try{

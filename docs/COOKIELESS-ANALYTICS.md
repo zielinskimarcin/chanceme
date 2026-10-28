@@ -27,7 +27,7 @@ Checked the provider script currently served by this project: no document.cookie
 
 ## Validation and rollback
 
-82JavaScript and21Python tests, production output checks: PASS. Tests cover new automatic cookieless visits, no identifier creation, no popup creation, legacy refusal migration, opt-out/re-enable, DNT/GPC/preview suppression, removal of old cookies, no GA/Clarity on any route, URL/data filtering and no paid custom events. Release gate requires privacy/analytics links and rejects obsolete popup controls.
+83JavaScript and21Python tests, production output checks: PASS. Tests cover new automatic cookieless visits, no identifier creation, no popup creation, legacy refusal migration, opt-out/re-enable, DNT/GPC/preview suppression, removal of old cookies, no GA/Clarity on any route, URL/data filtering and no paid custom events. Release gate requires privacy/analytics links and rejects obsolete popup controls.
 
 Exact protected preview and public browser/receipt checks must pass before reporting completion. Retain private QA proofs outside Git. Marketing copy, page titles except the privacy page, canonical URLs, model, favicon and Cal.com booking flow stay intact. Visible content changes are limited to Privacy &analytics text, footer Privacy/Analyticssettings links and removal of the automatic popup.
 

@@ -1,10 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('src/static/analytics.js','utf8');
 const helpers=require('../src/static/analytics.js');
-function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,off=null,referrer='',cookies=''}={}){
+function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies=''}={}){
  const scripts=[],queue=[],writes=[],cookieWrites=[],status={textContent:''};
  const button={hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{button.click=fn;}};
- const storage=new Map();if(legacy!==null)storage.set('chance-consent-v1',JSON.stringify({analytics:legacy,expires:Date.now()+60000}));if(off!==null)storage.set('chance-anonymous-stats-off-v1',off);
+ const storage=new Map([['__va_attribution','{"userId":"old-private-id"}']]);if(legacyRaw!==null)storage.set('chance-consent-v1',legacyRaw);if(legacy!==null)storage.set('chance-consent-v1',JSON.stringify({analytics:legacy,expires:Date.now()+60000}));if(off!==null)storage.set('chance-anonymous-stats-off-v1',off);
  const document={referrer,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
  Object.defineProperty(document,'cookie',{get:()=>cookies,set:v=>cookieWrites.push(v)});
  const window={document,navigator:{globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search:'?score=1450',hash:'#gpa=9',reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
@@ -48,3 +48,5 @@ test('legacy GA and Clarity cookies are expired, while functional cookies are le
 test('compatibility hooks do not send paid custom events or raw calculator inputs',()=>{
  const b=boot();const count=b.queue.length;assert.equal(b.window.ChanceAnalytics.track('calculator_completed',{score:1450,gpa:9}),false);assert.equal(b.queue.length,count);assert.equal(b.scripts.length,1);
 });
+
+test('malformed legacy preferences cannot preserve optional identity data',()=>{const b=boot({legacyRaw:'{broken'});assert.equal(b.storage.has('__va_attribution'),false);assert.equal(b.storage.has('chance-consent-v1'),false);});
