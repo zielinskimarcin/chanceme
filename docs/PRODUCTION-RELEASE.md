@@ -44,3 +44,10 @@ Independent pre-release parity: 216 complete evaluate() responses match the sour
 ## Footer refinement — 2026-10-28
 
 Replaced the loosely spaced footer rows with a brand/short description on the left, a consistent six-link navigation grid on the right, and a quiet legal/privacy row below a divider. All calculators, lessons, guides, privacy, report and404 inherit the same footer. Privacy and cookie controls are authored in the footer templates rather than appended outside the legal row by the build. Existing destinations and consent behaviour remain intact. Rollback baseline: productiondpl_FHoqPpQ2Wb8dCwDoyR5bTfjYMJ1E / merge37853c85a09b70555a83b9fff946f0893827264a.
+
+
+## Preferred Google site name — 2026-10-28
+
+Following the owner's explicit choice, the homepage's single WebSite node now declares “Chance Me for Bocconi” as name and “Chance Me” as alternateName. Its URL matches the canonical homepage. All generated pages use the same preferred og:site_name. Page titles, descriptions, visible copy and favicon assets/references are unchanged. Four green raster identity concepts are previews awaiting selection and are not published.
+
+This corrects the previously reversed preferred/alternate names. Google chooses the displayed site name after recrawling; deployment does not guarantee an immediate search-result change. The dated Search Console baseline remains in private QA records referenced above; this is a brand-presentation change, not a claim of ranking improvement. Rollback baseline: production dpl_ARiDM4LfUpK9xFVe3Ac7NDjqepjC, main74af3dd1a56881763d198ed42aa242ad8c13e7dd; revert this metadata commit for subsequent builds.
