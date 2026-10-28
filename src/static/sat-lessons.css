@@ -83,3 +83,10 @@
 @media(max-width:380px){.sat-hero,.sat-approach,.sat-booking,.sat-faq{padding-inline:16px}.sat-hero h1{font-size:39px}.sat-portrait{grid-template-columns:120px minmax(0,1fr);gap:14px}.sat-portrait figcaption>strong{font-size:16px}.sat-portrait figcaption .sat-degree{font-size:12px}.sat-portrait figcaption>span{font-size:11px}.sat-section-heading h2{font-size:32px}.sat-bocconi{padding:21px 17px}.sat-bocconi h3{font-size:25px}.sat-booking h2{font-size:36px}.sat-booking-contact .sat-text-link{font-size:17px}.sat-bottom{padding-inline:16px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sat-screen-button{transition:none}}
 @media print{.sat-reveal.is-ready{opacity:1;transform:none}}
+
+/* Application support follows the lesson FAQ. */
+.sat-application{max-width:1000px;padding:0 64px 32px}
+@media(max-width:1100px){.sat-application{padding-inline:40px}}
+@media(max-width:800px){.sat-application{padding-inline:25px}}
+@media(max-width:620px){.sat-application{padding-inline:22px}}
+@media(max-width:380px){.sat-application{padding-inline:16px}}
