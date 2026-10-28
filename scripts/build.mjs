@@ -37,7 +37,7 @@ function structured(p){
  const graph=[];
  if(p.type==='WebApplication')graph.push({'@type':'WebApplication','@id':url+'#application',name:p.name||'Bocconi Admission Calculator',url,description:p.description,applicationCategory:'EducationalApplication',operatingSystem:'Any',isAccessibleForFree:true,offers:{'@type':'Offer',price:'0',priceCurrency:'EUR'},publisher:{'@type':'Organization',name:'Chance Me',url:host}});
  if(p.type==='Service')graph.push({'@type':'Service','@id':url+'#service',name:p.name,url,description:p.description,serviceType:'Online SAT tutoring',provider:{'@type':'Person',name:'Marcin Zieliński',url:host+'/#about'},offers:{'@type':'Offer',price:'50',priceCurrency:'EUR',url:url+'#book-lesson',description:'60-minute online SAT lesson. Payment after the lesson.'}});
- if(p.url==='/')graph.push({'@type':'WebSite','@id':host+'/#website',name:'Chance Me',alternateName:'Chance Me for Bocconi',url:host,inLanguage:'en'});
+ if(p.url==='/')graph.push({'@type':'WebSite','@id':host+'/#website',name:'Chance Me for Bocconi',alternateName:'Chance Me',url:host+'/',inLanguage:'en'});
  else if(p.name&&!p.noindex)graph.push({'@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Chance Me',item:host+'/'},{'@type':'ListItem',position:2,name:p.name,item:url}]});
  return graph.length?`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@graph':graph})}</script>`:'';
 }
@@ -50,7 +50,7 @@ for(const p of [...pages,{file:'404.html',url:null,noindex:true}]){
  if(p.title&&p.url){
   html=html.replace(/<meta (?:property="(?:og:[^"]+|article:modified_time)"|name="twitter:[^"]+")[^>]*>/g,'');
   const image=host+'/assets/social/chance-me.png';
-  html=html.replace('</head>',`<meta property="og:type" content="website"><meta property="og:site_name" content="Chance Me"><meta property="og:title" content="${escape(p.title)}"><meta property="og:description" content="${escape(p.description)}"><meta property="og:url" content="${host+p.url}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="Chance Me for Bocconi"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escape(p.title)}"><meta name="twitter:description" content="${escape(p.description)}"><meta name="twitter:image" content="${image}">${structured(p)}</head>`);
+  html=html.replace('</head>',`<meta property="og:type" content="website"><meta property="og:site_name" content="Chance Me for Bocconi"><meta property="og:title" content="${escape(p.title)}"><meta property="og:description" content="${escape(p.description)}"><meta property="og:url" content="${host+p.url}"><meta property="og:image" content="${image}"><meta property="og:image:alt" content="Chance Me for Bocconi"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escape(p.title)}"><meta name="twitter:description" content="${escape(p.description)}"><meta name="twitter:image" content="${image}">${structured(p)}</head>`);
  }
  // Only private input/results surfaces are masked. Clarity also excludes calculator pages entirely.
  html=html.replace(/(<(?:form|aside|section)[^>]*\bid="(?:profile-form|result-panel|evidence|gpa-form|book-lesson)"[^>]*)(>)/g,'$1 data-clarity-mask="true"$2');
