@@ -63,11 +63,11 @@
  function showSettings(){
   if(notice)return;
   notice=doc.createElement('section');notice.className='cookie-notice';notice.setAttribute('data-nosnippet','');notice.setAttribute('aria-label','Analytics preferences');
-  const title=doc.createElement('h2');title.textContent='Help improve Chance Me';
-  const text=doc.createElement('p');text.append('Allow optional analytics to see which tools and guides are useful. Your scores and grades are not sent to analytics. ');
-  const link=doc.createElement('a');link.href='/privacy/';link.textContent='Privacy & cookies';text.append(link);
+  const title=doc.createElement('h2');title.textContent='Analytics cookies';
+  const text=doc.createElement('p');text.append('We use optional analytics to improve Chance Me. Your scores and grades aren’t included. ');
+  const link=doc.createElement('a');link.href='/privacy/';link.textContent='Privacy';text.append(link);
   const actions=doc.createElement('div');actions.className='cookie-actions';
-  for(const [label,value] of [['Accept analytics',true],['Reject',false]]){const button=doc.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',()=>setChoice(value));actions.append(button);}
+  for(const [label,value] of [['Accept',true],['Reject',false]]){const button=doc.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',()=>setChoice(value));actions.append(button);}
   notice.append(title,text);
   if(blocked()){const status=doc.createElement('p');status.className='cookie-status';status.textContent='Your browser’s privacy signal disables analytics.';notice.append(status);}
   notice.append(actions);doc.body.append(notice);
