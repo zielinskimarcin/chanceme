@@ -31,7 +31,7 @@ pages.push({file:'privacy.html',url:'/privacy/',title:'Privacy & Cookies | Chanc
 fs.writeFileSync('dist/404.html',plain('Page not found','<p>This page does not exist. You can return to the <a href="/">admission calculator</a>, use the <a href="/bocconi-gpa-calculator/">GPA calculator</a> or browse the guides above.</p>'));
 fs.rmSync('public',{recursive:true,force:true});fs.mkdirSync('public');
 fs.cpSync('dist/assets','public/assets',{recursive:true});
-for(const n of fs.readdirSync('dist'))if(/\.(css|js|svg)$/.test(n))fs.copyFileSync('dist/'+n,'public/'+n);
+for(const n of fs.readdirSync('dist'))if(/\.(css|js|svg|ico)$/.test(n))fs.copyFileSync('dist/'+n,'public/'+n);
 function structured(p){
  const url=host+p.url;
  const graph=[];
@@ -43,6 +43,9 @@ function structured(p){
 }
 for(const p of [...pages,{file:'404.html',url:null,noindex:true}]){
  let html=read('dist/'+p.file);
+ // One shared favicon set on every generated page, including privacy and 404.
+ html=html.replace(/<link\b(?=[^>]*\brel="(?:icon|shortcut icon|apple-touch-icon)")[^>]*>/g,'');
+ html=html.replace('</head>','<link rel="icon" href="/assets/favicon-96.png" type="image/png" sizes="96x96"><link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32"><link rel="icon" href="/assets/favicon-16.png" type="image/png" sizes="16x16"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" sizes="180x180"><meta name="application-name" content="Chance Me for Bocconi"></head>');
  if(p.title)html=html.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(p.title)}</title>`);
  if(p.description){html=html.replace(/<meta name="description"[^>]*>/g,'');html=html.replace('</head>',`<meta name="description" content="${escape(p.description)}"></head>`);}
  html=html.replace(/<meta name="robots"[^>]*>/g,'').replace(/<link rel="canonical"[^>]*>/g,'');
@@ -60,6 +63,8 @@ for(const p of [...pages,{file:'404.html',url:null,noindex:true}]){
  html=html.replace(/(src|href)="(\/[^"?#]+)(?:\?[^"#]*)?"/g,(match,attr,url)=>{
    const file=path.join('public',url);
    if(!fs.existsSync(file)||!fs.statSync(file).isFile())return match;
+   // Stable icon URLs help crawlers retain one canonical brand asset.
+   if(/^\/assets\/(?:favicon-\d+|apple-touch-icon)\.png$/.test(url))return `${attr}="${url}"`;
    return `${attr}="${url}?v=${crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0,12)}"`;
  });
  const target=p.url?path.join('public',p.url,'index.html'):'public/404.html';

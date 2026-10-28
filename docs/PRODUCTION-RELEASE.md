@@ -51,3 +51,12 @@ Replaced the loosely spaced footer rows with a brand/short description on the le
 Following the owner's explicit choice, the homepage's single WebSite node now declares “Chance Me for Bocconi” as name and “Chance Me” as alternateName. Its URL matches the canonical homepage. All generated pages use the same preferred og:site_name. Page titles, descriptions, visible copy and favicon assets/references are unchanged. Four green raster identity concepts are previews awaiting selection and are not published.
 
 This corrects the previously reversed preferred/alternate names. Google chooses the displayed site name after recrawling; deployment does not guarantee an immediate search-result change. The dated Search Console baseline remains in private QA records referenced above; this is a brand-presentation change, not a claim of ranking improvement. Rollback baseline: production dpl_ARiDM4LfUpK9xFVe3Ac7NDjqepjC, main74af3dd1a56881763d198ed42aa242ad8c13e7dd; revert this metadata commit for subsequent builds.
+
+
+## Approved green percent favicon — 2026-10-28
+
+The owner selected the Percent raster identity and requested installation. Replaced published favicon references with centrally generated PNG96/32/16 and Apple180 links across every page; added root ICO fallback16/32/48. Larger PNG192/512 exports and the original generated master/provenance are retained. Raster design stays faithful to the chosen dark-green/mint/white mark. Icon URLs are stable and revalidate their cache, while other assets keep content versioning and existing cache behaviour.
+
+The preferred WebSite and Open Graph name remains Chance Me for Bocconi, with Chance Me as alternate. Added application-name for saved browser applications. No page titles, marketing text, layout, model or analytics changes. Crawlability and actual image dimensions must be verified on preview and public production. Google can take days to weeks to adopt a favicon/site name and does not guarantee display; request homepage recrawl only after public verification.
+
+Rollback: previous production dpl_BRDvCSzvMUmgheq8QCEignkDb7kh, main0be89e1420c906d845d0f9fd4c8c89147e507464; revert the favicon release for subsequent builds.
