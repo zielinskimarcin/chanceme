@@ -1,5 +1,11 @@
 # Campus production release — 2026-10-27
 
+## Current analytics: no automatic popup — 2026-10-28
+
+The owner explicitly requested measurement without a cookie popup. The current release uses only existing cookieless Vercel Web Analytics page views. Google Analytics and Clarity no longer load; their existing accounts and historical data are untouched. The Hobby team plan was verified read-only, so no paid custom-event feature is enabled. Existing product event hooks return without transmitting anything. Privacy information and inline opt-out replace the popup. Earlier paragraphs describing retained GA4/Clarity and consent notices are release history.
+
+See [cookieless measurement contract](COOKIELESS-ANALYTICS.md) for data limits, source review, tests, browser QA and rollback.
+
 ## Scope and source of truth
 
 Publishes the approved Chance Me redesign, GPA calculator, English SAT lessons, two substantial guides and separate full report. The existing canonical domain and guide URLs are preserved. Existing historical root HTML/CSV remain in Git for provenance but are excluded from the static output and runtime data loading. Edit `src/`, then build; do not edit `public/` or legacy root HTML.
@@ -14,7 +20,7 @@ The production adapter retains the reviewed `/api/estimate`, `/api/options`, `/a
 
 Six indexable canonical pages: homepage, GPA calculator, SAT tutoring, two guides and privacy. Reports and GPA source notes carry noindex; private profiles are URL fragments rather than crawlable parameter pages. Static HTML exposes complete guide text, sources, internal links and image captions without client rendering. Production and preview robots are separated. The sitemap includes canonical indexable URLs only. Titles/descriptions are distinct; homepage retains its established search title. WebApplication, Service/Offer, Article and Breadcrumb schemas reflect actual page content. No fabricated ratings or admissions guarantees. OG images use the real interface or the credited campus photograph. Asset URLs have content versions.
 
-## Controlled analytics
+## Previous consent-based analytics (superseded2026-10-28)
 
 Existing GA4 stream G-TQX27XKE8K, Clarity vx5oj467o6 and Vercel Web Analytics are retained. No optional measurement libraries load before affirmative analytics consent; rejection and browser privacy signals disable measurement. Six-month preference, visible withdrawal in footer. GA4 Enhanced Measurement was disabled in its existing stream following Marcin's explicit approval on 2026-10-27 (verified 2026-10-28 05:04 UTC); historical data remains.
 
