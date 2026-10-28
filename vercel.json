@@ -1,5 +1,114 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:production",
+  "outputDirectory": "public",
+  "installCommand": "npm ci --ignore-scripts",
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "{tests/**,qa/**,docs/**,src/**,scripts/**,node_modules/**,.venv/**,.git/**,dist/**,public/**,**/__pycache__/**,api/*.csv}",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.py"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/bocconi-sat-score/index.html",
+      "destination": "/bocconi-sat-score/",
+      "permanent": true
+    },
+    {
+      "source": "/bocconi-test-score/index.html",
+      "destination": "/bocconi-test-score/",
+      "permanent": true
+    },
+    {
+      "source": "/bocconi-gpa-calculator/index.html",
+      "destination": "/bocconi-gpa-calculator/",
+      "permanent": true
+    },
+    {
+      "source": "/sat-tutoring/index.html",
+      "destination": "/sat-tutoring/",
+      "permanent": true
+    },
+    {
+      "source": "/privacy/index.html",
+      "destination": "/privacy/",
+      "permanent": true
+    },
+    {
+      "source": "/report/index.html",
+      "destination": "/report/",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/report/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/gpa-school-sources/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=3600"
+        }
+      ]
+    }
   ]
 }

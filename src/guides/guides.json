@@ -1,0 +1,34 @@
+{
+  "checked": "2026-10-27",
+  "canonicalHost": "https://chance-me.com",
+  "guides": [
+    {
+      "slug": "bocconi-test-score",
+      "navLabel": "Bocconi Test guide",
+      "title": "Bocconi Test 2027/28: Format, Scores & Dates | Chance Me",
+      "description": "Bocconi Test guide for 2027/28: 50 questions, scoring, the 17-point minimum, attempts, international deadlines, official practice and preparation.",
+      "heading": "Bocconi Test 2027/28",
+      "subheading": "Format, scores and preparation",
+      "lead": "What’s on the test, how the marking works and what to prepare before you book. The current rules for international undergraduate applicants.",
+      "facts": [["50", "questions"], ["75 min", "testing time"], ["€60", "per attempt"], ["4", "attempts per test type"]],
+      "shortTitle": "Bocconi Test",
+      "authorCta": "Considering the SAT instead?",
+      "authorText": "I’m Marcin, a third-year International Economics and Management student at Bocconi. I’ve been tutoring SAT for three years and have worked with dozens of students. I can help you prepare for the SAT route or work through questions about your application.",
+      "authorLink": "Explore SAT tutoring for Bocconi"
+    },
+    {
+      "slug": "bocconi-sat-score",
+      "navLabel": "SAT for Bocconi",
+      "title": "SAT for Bocconi 2027/28: Scores & Requirements | Chance Me",
+      "description": "SAT for Bocconi in 2027/28: minimum scores, GPA weighting, superscore rules, sending results with code 7206 and international application deadlines.",
+      "heading": "SAT for Bocconi 2027/28",
+      "subheading": "Scores, requirements and deadlines",
+      "lead": "What score do you need, how does GPA affect your chances, and how do you submit the result? Here are the rules that matter for your application.",
+      "facts": [["1040", "minimum total"], ["520", "minimum per section"], ["55%", "test weight in selection"], ["7206", "SAT recipient code"]],
+      "shortTitle": "SAT for Bocconi",
+      "authorCta": "Work towards your 1500+ goal.",
+      "authorText": "I’m Marcin, a third-year International Economics and Management student at Bocconi. Over the past three years, I’ve helped dozens of students prepare for the SAT. Lessons focus on your gaps, your test date and what to practise next. You can ask about your Bocconi application, too.",
+      "authorLink": "SAT tutoring for Bocconi"
+    }
+  ]
+}

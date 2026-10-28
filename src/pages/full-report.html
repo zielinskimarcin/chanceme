@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f8fafc">
+  <title>Your Bocconi admission report | Chance Me</title>
+  <meta name="description" content="Estimate your Bocconi admission chances from your SAT or Bocconi Test score and GPA, and compare your profile with self-reported historical results.">
+  <link rel="icon" href="/assets/favicon-c-32.png?v=calculator" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon-c-16.png?v=calculator" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon-c.png?v=calculator" sizes="180x180">
+  <link rel="preload" href="/assets/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/campus.css">
+  <script src="/report.js" defer></script>
+  <script src="/campus.js" defer></script>
+  <script src="/full-report.js" defer></script>
+</head>
+<body class="full-report-page" data-page="report">
+  <a class="skip-link" href="/#calculator">Skip to calculator</a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="/#calculator" aria-label="Chance Me for Bocconi — calculator"><div class="brand-copy"><span class="brand-name">chance me</span><span class="brand-subtitle">for <img src="/assets/bocconi-wordmark.svg" width="65" height="14" alt="Bocconi"></span></div></a>
+      <button class="menu-toggle" id="menu-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Open navigation"><span></span><span></span></button>
+      <nav id="main-nav" aria-label="Main navigation">
+        <a href="/#calculator">Calculator</a>
+        <a href="/bocconi-gpa-calculator/">GPA calculator</a>
+        <a href="/sat-tutoring/">SAT lessons</a>
+        <div class="nav-dropdown" id="guides-dropdown">
+          <button id="guides-toggle" class="guides-toggle" type="button" aria-expanded="false" aria-controls="guides-panel">Guides <span class="chevron" aria-hidden="true"></span></button>
+          <div class="guides-panel" id="guides-panel" hidden>
+            <a href="/bocconi-sat-score/"><span>SAT for Bocconi</span><span aria-hidden="true">→</span></a>
+            <a href="/bocconi-test-score/"><span>Bocconi Test guide</span><span aria-hidden="true">→</span></a>
+            <a href="/bocconi-gpa-calculator/"><span>Understanding your GPA</span><span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+        <a href="/#about">About</a>
+      </nav>
+    </header>
+    <main>
+      <div id="full-report-status" class="full-report-status" role="status">Loading your report…</div>
+      <section class="hero" id="calculator" aria-labelledby="page-title">
+        <div class="hero-left">
+          <div class="hero-copy">
+            <h1 id="page-title">Bocconi<br>admission calculator</h1>
+            <p class="intro">Enter your SAT or Bocconi Test score and GPA to estimate your chances and compare your profile with past applicants.</p>
+          </div>
+          <form class="calculator-form" id="profile-form" novalidate>
+            <fieldset class="test-tabs">
+              <legend class="sr-only">Admission test</legend>
+              <label><input type="radio" name="test_type" value="SAT" checked><span>SAT</span></label>
+              <label><input type="radio" name="test_type" value="Bocconi"><span>Bocconi Test</span></label>
+            </fieldset>
+            <div class="fields-grid">
+              <div class="field"><label for="score" id="score-label">SAT score</label><div class="input-unit"><input id="score" name="score" inputmode="numeric" autocomplete="off" placeholder="e.g. 1450" aria-describedby="score-error" required><span id="score-max">/ 1600</span></div><p class="field-error" id="score-error" hidden></p></div>
+              <div class="field"><label for="gpa">Bocconi GPA</label><div class="input-unit"><input id="gpa" name="gpa" inputmode="decimal" autocomplete="off" placeholder="e.g. 9.0" aria-describedby="gpa-error" required><span>/ 10</span></div><p class="field-error" id="gpa-error" hidden></p></div>
+              <div class="field"><label for="course">Programme</label><select id="course" name="course" aria-describedby="course-error selected-programme" required disabled><option value="">Loading programmes…</option></select><p class="field-error" id="course-error" hidden></p></div>
+              <div class="field"><label for="session">Round</label><select id="session" name="session" aria-describedby="session-error" required><option value="">Select</option><option value="Early">Early</option><option value="Winter">Winter</option></select><p class="field-error" id="session-error" hidden></p></div>
+            </div>
+            <p class="selected-programme" id="selected-programme" hidden></p>
+            <div class="gpa-helper"><a href="/bocconi-gpa-calculator/">Need your Bocconi GPA? <span aria-hidden="true">↗</span></a><span>Use the 6–10 scale</span></div>
+            <p class="transfer-note" id="gpa-transfer-note" hidden></p>
+            <p class="form-error" id="form-error" role="alert" hidden></p>
+            <button class="calculate" id="calculate" type="submit" disabled><span id="calculate-label">Loading calculator…</span><svg viewBox="0 0 24 24" width="21" height="21" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <p class="form-footnote">Experimental estimate from self-reported historical results.</p>
+          </form>
+        </div>
+        <aside class="result-panel is-empty" id="result-panel" aria-label="Your estimate" aria-busy="false" data-state="empty">
+          <div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div>
+          <div class="empty-state" id="empty-state">
+            <h2 id="empty-headline">Your result will appear here.</h2>
+            <p id="empty-description">Add your scores, programme and round to see your estimate.</p>
+          </div>
+          <div class="calculated-state" id="calculated-state" hidden>
+            <div class="result-header"><p class="result-kicker" id="result-kicker">Estimated chance</p><p class="result-context" id="result-context"></p></div>
+            <div class="result-ring" id="result-ring">
+              <svg viewBox="0 0 280 280" aria-hidden="true"><circle class="ring-track" cx="140" cy="140" r="122"/><circle class="ring-value" id="ring-value" cx="140" cy="140" r="122" pathLength="100" stroke-dasharray="0 100"/></svg>
+              <div class="percentage" id="percentage"></div>
+            </div>
+            <h2 id="result-headline"></h2>
+            <p class="result-explanation" id="result-explanation"></p>
+            <p class="endpoint-note" id="endpoint-note" hidden></p>
+            <p class="result-nearby" id="result-nearby" hidden></p>
+            <p class="result-support" id="result-support" hidden></p>
+            <div class="result-actions"><a class="explore-link" id="explore-link" href="#evidence">Explore the data <span aria-hidden="true">↓</span></a><a class="how-link" href="/#how-it-works">How it works</a></div>
+            <p class="result-disclaimer">Model estimate, not a guarantee of admission.</p>
+          </div>
+          <p class="panel-independent" id="panel-independent">Independent tool. Not affiliated with Bocconi.</p>
+        </aside>
+      </section>
+      <p class="sr-only" id="result-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+      <details class="evidence" id="evidence" hidden>
+        <summary><span><span class="evidence-title">Explore the data</span><span class="evidence-subtitle">Scores and outcomes from past applicants.</span></span><span class="chevron" aria-hidden="true"></span></summary>
+        <div class="evidence-body" id="evidence-body"></div>
+      </details>
+      <section class="how-it-works" id="how-it-works" aria-labelledby="how-title">
+        <div class="how-heading"><p class="section-eyebrow">Behind the estimate</p><h2 id="how-title">How it works</h2><p>The percentage is a model estimate. Historical reports help you understand its context.</p></div>
+        <div class="how-grid"><article><span>01</span><h3>Your profile</h3><p>Your test score, Bocconi GPA, programme and round are the model’s inputs.</p></article><article><span>02</span><h3>A model estimate</h3><p>The model uses historical reports and explicit assumptions. It cannot know the competition in your application round.</p></article><article><span>03</span><h3>The historical context</h3><p>Compare similar self-reported results. These reports are a small, self-selected sample, rather than the full applicant pool.</p></article></div>
+        <details class="methodology" id="methodology"><summary>Methodology &amp; limitations<span class="chevron" aria-hidden="true"></span></summary><div><p>This experimental model has not been independently calibrated for the current applicant pool. Historical applicants reported their own scores and outcomes; their GPA conversion, school category and programme preferences are not fully verified. Some current programmes use related older programmes as historical comparisons.</p><p>With few close reports, or a profile outside the observed range, the estimate relies more on model assumptions. A result of 0% or 100% can reflect an endpoint of the model’s scale, rather than a certain decision. Formal test requirements are checked separately; other application requirements still apply.</p><p>For admissions decisions and requirements, use <a href="https://www.unibocconi.it/en/applying-bocconi/bachelor-and-law-programs/application-and-admissions/admissions" target="_blank" rel="noopener noreferrer">Bocconi’s official admissions information ↗</a>. This tool is independent of the university.</p></div></details>
+      </section>
+      <section class="about-section" id="about" aria-labelledby="about-title">
+        <img class="author-photo" src="/assets/marcin.png" alt="Marcin, the creator of Chance Me" width="144" height="144" loading="lazy" decoding="async">
+        <div class="about-copy"><p class="section-eyebrow">About the creator</p><h2 id="about-title">Hi, I’m Marcin.</h2><p>I’m a Bocconi student and the person behind Chance Me. I built it to help applicants compare their scores with past results and understand what the estimate is based on.</p><p>I also tutor SAT and help students with their Bocconi applications.</p><div class="about-links"><a href="https://www.linkedin.com/in/marcin-zielinski-b208822bb/" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">↗</span></a><a href="https://www.instagram.com/marzielinski/" target="_blank" rel="noopener noreferrer">Instagram <span aria-hidden="true">↗</span></a><a href="/sat-tutoring/">SAT lessons <span aria-hidden="true">↗</span></a></div></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-main"><a class="footer-wordmark" href="/#calculator">chance me</a><p>Independent tool · Not affiliated with Bocconi</p><a href="/#how-it-works">How it works</a></div>
+      <nav class="footer-guides" aria-label="Admissions guides"><span>Guides</span><a href="/bocconi-sat-score/">SAT for Bocconi</a><a href="/bocconi-test-score/">Bocconi Test guide</a><a href="/bocconi-gpa-calculator/">GPA calculator</a></nav>
+    </footer>
+  </div>
+  <noscript><div class="noscript">JavaScript is needed to calculate an estimate. You can still read the guides and methodology.</div></noscript>
+</body>
+</html>
