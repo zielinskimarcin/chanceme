@@ -39,3 +39,8 @@ A dated private Search Console export and audit are retained outside Git. Both e
 Existing project `bocconi-chanceme`, team `zielinskimarcins-projects`; no DNS, billing, security protection or secrets changes. Required path: local regression checks, Linux CI, protected preview HTTP/API/PDF checks and visual QA, then merge and production verification. The previous production deployment is `dpl_8Q6rp2yZXUuwN7WXYmHpphbUkryc`, commit `a05b4c305e0b3c457b4630ca617f8b02fe40687a`. Roll back using the official Vercel rollback to that deployment in the same scope, then revert the release merge in Git to keep future deployments consistent. Do not disable deployment protection. Analytics-setting rollback is separate: re-enable the existing stream's prior Enhanced Measurement settings only if restoring automatic collection is expressly intended.
 
 Independent pre-release parity: 216 complete evaluate() responses match the source engine exactly in separate Python 3.9/3.12 processes, across both tests, six programmes, Early/Winter and three score/GPA levels.
+
+
+## Footer refinement — 2026-10-28
+
+Replaced the loosely spaced footer rows with a brand/short description on the left, a consistent six-link navigation grid on the right, and a quiet legal/privacy row below a divider. All calculators, lessons, guides, privacy, report and404 inherit the same footer. Privacy and cookie controls are authored in the footer templates rather than appended outside the legal row by the build. Existing destinations and consent behaviour remain intact. Rollback baseline: productiondpl_FHoqPpQ2Wb8dCwDoyR5bTfjYMJ1E / merge37853c85a09b70555a83b9fff946f0893827264a.

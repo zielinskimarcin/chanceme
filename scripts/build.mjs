@@ -56,7 +56,6 @@ for(const p of [...pages,{file:'404.html',url:null,noindex:true}]){
  html=html.replace(/(<(?:form|aside|section)[^>]*\bid="(?:profile-form|result-panel|evidence|gpa-form|book-lesson)"[^>]*)(>)/g,'$1 data-clarity-mask="true"$2');
  html=html.replace(/using SAT or Bocconi Test guide\./g,'using SAT or Bocconi Test.');
  if(!html.includes('</footer>'))html=html.replace('</body>',footer+'</body>');
- html=html.replace('</footer>','<div class="privacy-links"><a href="/privacy/">Privacy & cookies</a><button type="button" data-cookie-settings>Cookie settings</button></div></footer>');
  // Version actual files, avoiding stale JS/CSS after the redesign.
  html=html.replace(/(src|href)="(\/[^"?#]+)(?:\?[^"#]*)?"/g,(match,attr,url)=>{
    const file=path.join('public',url);
