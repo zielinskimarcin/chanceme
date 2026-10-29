@@ -66,3 +66,6 @@ test('collector guards methods, origin, payload size, privacy signals and missin
 test('collector returns generic error without sensitive data when storage fails',async()=>{
  const {makeHandler}=await import('../api/product-events.mjs');const handler=makeHandler({enabled:()=>true,store:()=>({read:async()=>{throw new Error('secret payload');}}),clock:()=>now.getTime()});const res={setHeader(){},end(body){this.body=body;}};await handler({method:'POST',headers:{origin:'https://chance-me.com','sec-fetch-site':'same-origin','content-type':'application/json'},body:batch()},res);assert.equal(res.statusCode,503);assert.equal(res.body,undefined);
 });
+test('private report labels absent observations as unknown rather than verified zero traffic',async()=>{
+ const {renderReport}=await import('../scripts/product-metrics-report.mjs');const {summarize,freshState}=await api;const html=renderReport(summarize(freshState(),{now}));assert.ok(html.includes('No observations are available'));assert.ok(html.includes('collection health is unknown'));assert.ok(html.includes('0 day(s) with recorded observations'));assert.ok(!html.includes('private-hash'));
+});
