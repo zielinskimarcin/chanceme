@@ -23,7 +23,7 @@
       const data=await response.json();
       if(!response.ok||!["estimated","ineligible"].includes(data.status)||!finite(data.probability)||data.probability<0||data.probability>1||typeof data.display_percent!=="string")throw new Error("No estimate");
       ChanceReport.render(data,input,{cycle:params.get("year")||""});status.hidden=true;
-    } catch (_) { message("The report couldn’t be loaded. Your original result is still open in the calculator tab.",true); }
+    } catch (_) { window.ChanceAnalytics?.track('report_failed',{reason:'unavailable'});message("The report couldn’t be loaded. Your original result is still open in the calculator tab.",true); }
     finally {clearTimeout(timeout);}
   }
   await load();
