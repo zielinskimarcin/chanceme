@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('src/static/analytics.js','utf8');
 const helpers=require('../src/static/analytics.js');
-function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',session=null,noSession=false,userAgent='',search='?score=1450',hash='#gpa=9',fetcher=()=>Promise.resolve({ok:true})}={}){
+function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',session=null,noSession=false,userAgent='',search='?score=1450',hash='#gpa=9',cryptoOverride=undefined,fetcher=()=>Promise.resolve({ok:true})}={}){
  const scripts=[],queue=[],writes=[],cookieWrites=[],requests=[],timers=new Map(),listeners={},documentListeners={},status={textContent:''};let timerId=0,eventId=0;
  const button={hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{button.click=fn;}};
  const sessionStorage=new Map(session||[]);
@@ -9,6 +9,7 @@ function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,leg
  const document={referrer,addEventListener:(name,fn)=>documentListeners[name]=fn,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
  Object.defineProperty(document,'cookie',{get:()=>cookies,set:v=>cookieWrites.push(v)});
  const window={document,setTimeout:(fn,ms)=>{const id=++timerId;timers.set(id,fn);window.lastTimerDelay=ms;return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},sessionStorage:{getItem:key=>{if(noSession)throw new Error('storage blocked');return sessionStorage.get(key)??null;},setItem:(key,value)=>{if(noSession)throw new Error('storage blocked');sessionStorage.set(key,value);},removeItem:key=>sessionStorage.delete(key)},navigator:{userAgent,globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search,hash,reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
+ if(cryptoOverride!==undefined)window.crypto=cryptoOverride;
  vm.runInNewContext(source,{window,Date,Set,JSON,Object,URL,URLSearchParams});
  return{scripts,queue,writes,cookieWrites,requests,timers,listeners,documentListeners,window,button,status,storage,sessionStorage,flush:()=>listeners.pagehide(),beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
 }
@@ -140,4 +141,26 @@ test('browser and operating system families use fixed enums without sending full
 test('completed calculation detail flags and model result have a strict schema',()=>{
  const detail={...profile,gpa_estimated:true,gpa_confirmed:true,cycle:'27-28',applicant_category:'international',result:{probability:.54,display_percent:'54%',status:'estimated'}};assert.ok(helpers.cleanEvent('calculator_completed',detail));
  for(const extra of [{gpa_estimated:'true'},{cycle:'26-27'},{applicant_category:'private'},{result:{probability:1.1,display_percent:'54%',status:'estimated'}},{result:{probability:.54,display_percent:'private',status:'estimated'}},{result:{probability:.54,display_percent:'54%',status:'estimated',email:'private'}}])assert.equal(helpers.cleanEvent('calculator_completed',{...detail,...extra}),null);
+});
+
+test('secure UUID fallback uses browser entropy with RFC4122 version and variant bits',()=>{
+ let calls=0;const crypto={getRandomValues:bytes=>{calls++;bytes.fill(255);return bytes;}};
+ assert.equal(helpers.secureUUID(crypto),'ffffffff-ffff-4fff-bfff-ffffffffffff');assert.equal(calls,1);
+ const fallback={randomUUID:()=>{throw new Error('not supported');},getRandomValues:bytes=>{bytes.fill(0);return bytes;}};
+ assert.equal(helpers.secureUUID(fallback),'00000000-0000-4000-8000-000000000000');
+ for(const crypto of [undefined,{}, {getRandomValues:()=>{throw new Error('unavailable');}}])assert.equal(helpers.secureUUID(crypto),null);
+});
+test('older Safari without randomUUID records events with a stable secure tab ID and independent event IDs',()=>{
+ let entropy=0;const crypto={getRandomValues:bytes=>{bytes.fill(++entropy);return bytes;}};
+ const b=boot({cryptoOverride:crypto,userAgent:'Version/15.3 Safari/605.1'});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);b.flush();
+ const events=JSON.parse(b.requests[0].init.body).events;assert.equal(events.length,2);assert.equal(events[0].visit_id,events[1].visit_id);assert.notEqual(events[0].id,events[1].id);assert.notEqual(events[0].id,events[0].visit_id);
+ for(const event of events)for(const key of ['id','visit_id'])assert.match(event[key],/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+ assert.equal(b.sessionStorage.get('chanceme.product-visit.v2'),events[0].visit_id);
+ const c=boot({cryptoOverride:crypto,session:[...b.sessionStorage]});assert.equal(c.window.ChanceAnalytics.visitId(),events[0].visit_id);
+});
+test('missing secure browser randomness disables product events without an insecure fallback or UI exception',()=>{
+ for(const crypto of [null,{}, {getRandomValues:()=>{throw new Error('blocked');}}]){
+  const b=boot({cryptoOverride:crypto});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),false);assert.equal(b.window.ChanceAnalytics.visitId(),null);b.flush();assert.equal(b.requests.length,0);assert.equal(b.sessionStorage.size,0);assert.equal(b.scripts.length,1);
+ }
+ assert.equal(source.includes('Math.random'),false);
 });

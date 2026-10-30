@@ -38,7 +38,17 @@
  }
  function cleanReferrer(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?(u.origin+u.pathname).slice(0,300):'';}catch{return '';}}
  function campaignValue(value){return typeof value==='string'&&/^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:undefined;}
- const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue,browserInfo};
+ function secureUUID(crypto){
+  try{if(typeof crypto?.randomUUID==='function')return crypto.randomUUID();}catch{}
+  try{
+   if(typeof crypto?.getRandomValues!=='function')return null;
+   const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);
+   bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+   const hex=Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('');
+   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }catch{return null;}
+ }
+ const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue,browserInfo,secureUUID};
  if(typeof module==='object'&&module.exports){module.exports=helpers;return;}
  if(!root.document)return;
  const doc=root.document,KEY='chance-anonymous-stats-off-v1',LEGACY='chance-consent-v1';
@@ -121,14 +131,15 @@
   // Explicit report navigation carries the random context in its fragment only.
   try{if(root.location.pathname==='/report/'){const carried=new URLSearchParams(root.location.hash.slice(1)).get('visit_id');if(valid(carried))visitId=carried;}}catch{}
   if(!visitId)try{const stored=root.sessionStorage.getItem(VISIT_KEY);if(valid(stored))visitId=stored;}catch{}
-  if(!visitId)try{visitId=root.crypto.randomUUID();}catch{return null;}
+  if(!visitId)visitId=secureUUID(root.crypto);
+  if(!visitId)return null;
   try{root.sessionStorage.setItem(VISIT_KEY,visitId);}catch{}
   return visitId;
  }
  function track(name,input){
   try{
    if(!allowed()){clearEvents();return false;}
-   const event=cleanEvent(name,input);if(!event||events.length>=16||!root.crypto?.randomUUID)return false;
+   const event=cleanEvent(name,input);if(!event||events.length>=16)return false;
    const currentVisit=getVisitId();if(!currentVisit)return false;
    const ua=root.navigator.userAgent||'';
    const device=/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)?'tablet':/Mobi|iPhone|Android/i.test(ua)?'mobile':'desktop';
@@ -137,7 +148,8 @@
    const environment=browserInfo(ua);
    try{const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;if(typeof timezone==='string'&&timezone.length<=80)environment.timezone=timezone;}catch{}
    const offset=new Date().getTimezoneOffset();if(Number.isInteger(offset)&&offset>=-840&&offset<=840)environment.utc_offset_minutes=offset;
-   const item={id:root.crypto.randomUUID(),...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...environment,...campaign};
+   const id=secureUUID(root.crypto);if(!id)return false;
+   const item={id,...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...environment,...campaign};
    if(JSON.stringify({version:2,events:events.concat(item)}).length>8192)return false;
    events.push(item);schedule();if(events.length===16)flush();return true;
   }catch{return false;}
