@@ -33,7 +33,7 @@
     window.Cal('init','chance-me-sat',{origin:'https://app.cal.com'});
     const cal=window.Cal.ns['chance-me-sat'],timeout=setTimeout(fail,20000);
     cal('on',{action:'linkReady',callback:()=>{clearTimeout(timeout);status.hidden=true;mount.setAttribute('aria-busy','false');}});
-    cal('on',{action:'bookingSuccessfulV2',callback:()=>{window.ChanceAnalytics?.track('booking_confirmed',{destination:'booking'});}});
+    cal('on',{action:'bookingSuccessfulV2',callback:()=>{window.ChanceAnalytics?.track('booking_submitted',{destination:'booking'});}});
     cal('on',{action:'linkFailed',callback:()=>{clearTimeout(timeout);fail();}});
     cal('inline',{elementOrSelector:'#sat-calendar',calLink:'marcinz/sat-lessons',config:{layout:'month_view',theme:'light',locale:'en'}});
     cal('ui',{theme:'light',layout:'month_view',hideEventTypeDetails:true,showTimezoneWhenEventDetailsHidden:true,cssVarsPerTheme:{light:{'cal-brand':'#1d655c','cal-brand-emphasis':'#124c43','cal-brand-text':'#ffffff','cal-brand-subtle':'#edf7f1','cal-bg':'#ffffff','cal-bg-subtle':'#f8fafc','cal-text':'#17324d','cal-text-emphasis':'#17324d','cal-text-subtle':'#58718c','cal-border':'#dbe6ef','cal-border-booker-width':'0px','radius':'12px'}}});

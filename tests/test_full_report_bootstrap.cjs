@@ -26,8 +26,3 @@ test('failed report loads show a working retry and never render a guessed percen
   let offline=true;const x=await setup(fragment,async()=>{if(offline)throw new Error('offline');return{ok:true,json:async()=>({status:'estimated',probability:.54,display_percent:'54%'})};});
   assert.equal(x.renders.length,0);assert.match(x.status.textContent,/couldn’t be loaded/);offline=false;await x.status.children.find(c=>c.tag==='button').listeners.click();assert.equal(x.renders.length,1);assert.equal(x.status.hidden,true);
 });
-
-test('visit fragment context is never copied into calculator API requests',async()=>{
- const visit='12345678-1234-4123-8123-123456789abc',x=await setup(fragment+'&visit_id='+visit,async()=>({ok:true,json:async()=>({status:'estimated',probability:.54,display_percent:'54%'})}));
- assert.equal(x.renders.length,1);assert.equal(Object.hasOwn(x.requests[0].body,'visit_id'),false);assert.equal(JSON.stringify(x.requests[0].body).includes(visit),false);
-});

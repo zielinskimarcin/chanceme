@@ -347,6 +347,7 @@ async function calculate() {
   if (!ready) return;
   const input = readInput();
   if (!validate(input)) return;
+  window.ChanceAnalytics?.track('calculator_submitted', {test_type:input.test_type,program:input.course,round:input.session});
   hasInteracted = true;
   if (activeRequest) activeRequest.abort();
   const controller = new AbortController(), current = ++generation;
@@ -361,9 +362,7 @@ async function calculate() {
     if (!response.ok && !(response.status === 400 && data.status === "invalid")) throw new Error("Unavailable service");
     if (!data || !["estimated", "ineligible", "unsupported", "invalid"].includes(data.status)) throw new Error("Unexpected response");
     renderResult(data, input);
-    const analytics=window.ChanceAnalytics;
-    const score_band=analytics?.scoreBand(input.test_type,input.score),gpa_band=analytics?.gpaBand(input.gpa);
-    analytics?.track('calculator_completed', {test_type:input.test_type,program:input.course,round:input.session,status:data.status,score:input.score,gpa:input.gpa,gpa_estimated:input.gpa_estimated===true,gpa_confirmed:input.gpa_confirmed===true,cycle:input.cycle,applicant_category:input.applicant_category,...(finite(data.probability)?{result:{probability:data.probability,display_percent:data.display_percent,status:data.status}}:{}),...(finite(data.probability)?{probability:data.probability*100,result_band:data.probability<.35?'lower':data.probability<.65?'balanced':'stronger'}:{}),...(score_band?{score_band}:{}),...(gpa_band?{gpa_band}:{})});
+    window.ChanceAnalytics?.track('calculator_completed', {test_type:input.test_type,program:input.course,round:input.session,status:data.status,result_band:data.probability<.35?'lower':data.probability<.65?'balanced':'stronger'});
   } catch (exception) {
     if (current !== generation) return;
     window.ChanceAnalytics?.track('calculator_failed',{reason:'unavailable'});

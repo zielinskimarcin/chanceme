@@ -1,3 +1,5 @@
+> Historical design, superseded by [independent Vercel and optional GA](ANALYTICS-RESTORE.md) on 2026-10-29. The first-party collector and local dashboard are retired.
+
 # Cookieless measurement — 2026-10-28
 
 ## Owner request and scope

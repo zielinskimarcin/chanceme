@@ -1,173 +1,104 @@
-/* Cookieless page views and bounded first-party product usage events. */
+/* Independent Vercel page views; optional Google Analytics with explicit consent. */
 (function(root){
  'use strict';
+ const GA='G-TQX27XKE8K',KEY='chance-google-consent-v2';
  const paths=new Set(['/','/bocconi-gpa-calculator/','/sat-tutoring/','/bocconi-sat-score/','/bocconi-test-score/','/report/','/privacy/','/gpa-school-sources/']);
+ const events=new Set(['page_view','calculator_started','calculator_submitted','calculator_completed','calculator_failed','gpa_started','gpa_calculated','gpa_transferred','cta_clicked','guide_opened','guide_cta_clicked','booking_cta_click','booking_submitted','whatsapp_click','pdf_download','full_report_opened']);
  const dimensions={test_type:['SAT','Bocconi'],program:['Management','Finance','Management and Computer Science','Management for the Arts and Cultures','International Politics and Government','Mathematical and Computing Sciences for Artificial Intelligence'],round:['Early','Winter'],status:['estimated','ineligible','invalid','unsupported'],result_band:['lower','balanced','stronger'],position:['header','hero','content','footer'],destination:['calculator','gpa','lessons','booking','whatsapp','sat_guide','bocconi_test_guide','report','pdf'],reason:['unavailable'],guide:['bocconi_sat_score','bocconi_test_score']};
  function cleanPath(path){return paths.has(path)?path:'/404/';}
  function cleanDimensions(input){const out={};for(const [key,allowed] of Object.entries(dimensions))if(allowed.includes(input?.[key]))out[key]=input[key];return out;}
  function safeLocation(location){return location.origin+cleanPath(location.pathname);}
- const eventDimensions={page_view:[],calculator_completed:['test_type','program','round','status','result_band','score_band','gpa_band','score','gpa','probability','gpa_estimated','cycle','applicant_category','gpa_confirmed','result'],calculator_failed:['reason'],gpa_calculated:[],gpa_transferred:['destination'],report_rendered:[],report_failed:['reason'],pdf_generated:[],pdf_failed:['reason'],pdf_download_initiated:['destination'],cta_clicked:['destination','position'],booking_confirmed:['destination']};
- function scoreBand(kind,value){
-  if(typeof value!=='number'||!Number.isFinite(value))return undefined;
-  if(kind==='SAT'){if(value<400||value>1600)return undefined;return value>=1550?'1550-1600':Math.floor(value/50)*50+'-'+(Math.floor(value/50)*50+49);}
-  if(kind==='Bocconi'){if(value<0||value>50)return undefined;return value>=48?'48-50':Math.floor(value/2)*2+'-'+(Math.floor(value/2)*2+1)+'.99';}
- }
- function gpaBand(value){if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>10)return undefined;if(value>=9.75)return '9.75-10.00';const lo=Math.floor(value*4)/4;return lo.toFixed(2)+'-'+(lo+.24).toFixed(2);}
- const satBands=new Set(Array.from({length:23},(_,i)=>(400+i*50)+'-'+(449+i*50)).concat('1550-1600'));
- const btBands=new Set(Array.from({length:24},(_,i)=>(i*2)+'-'+(i*2+1)+'.99').concat('48-50'));
- const gpaBands=new Set(Array.from({length:39},(_,i)=>(i/4).toFixed(2)+'-'+(i/4+.24).toFixed(2)).concat('9.75-10.00'));
- function validResult(value){return value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(k=>['probability','display_percent','status'].includes(k))&&typeof value.probability==='number'&&Number.isFinite(value.probability)&&value.probability>=0&&value.probability<=1&&typeof value.display_percent==='string'&&value.display_percent.length<=10&&/^(?:<1|>99|100|\d{1,2})%$/.test(value.display_percent)&&dimensions.status.includes(value.status);}
- function browserInfo(ua){
-  const browser=/Edg(?:e|A|iOS)?\//i.test(ua)?'Edge':/OPR\/|Opera/i.test(ua)?'Opera':/SamsungBrowser\//i.test(ua)?'Samsung Internet':/Firefox\/|FxiOS\//i.test(ua)?'Firefox':/Chrome\/|CriOS\//i.test(ua)?'Chrome':/Safari\//i.test(ua)?'Safari':'Other';
-  const os=/iPhone|iPad|iPod/i.test(ua)?'iOS':/Android/i.test(ua)?'Android':/CrOS/i.test(ua)?'ChromeOS':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Other';
-  return {browser,os};
- }
- function cleanEvent(name,input={}){
-  if(!Object.prototype.hasOwnProperty.call(eventDimensions,name))return null;
-  const keys=eventDimensions[name];if(!input||typeof input!=='object'||Array.isArray(input))return null;
-  // Unknown fields reject the whole event; only the approved event schema is transmitted.
-  if(Object.keys(input).some(key=>!keys.includes(key)))return null;
-  const output={};
-  for(const key of Object.keys(input)){
-   const value=input[key];
-   const valid=['gpa_estimated','gpa_confirmed'].includes(key)?typeof value==='boolean':key==='cycle'?value==='27-28':key==='applicant_category'?value==='international':key==='result'?validResult(value):['score','gpa','probability'].includes(key)?typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=({score:1600,gpa:10,probability:100}[key]):key==='score_band'?(input.test_type==='SAT'?satBands:input.test_type==='Bocconi'?btBands:new Set()).has(value):key==='gpa_band'?gpaBands.has(value):dimensions[key]?.includes(value);
-   if(!valid)return null;output[key]=value;
-  }
-  if(name==='calculator_completed'&&!['test_type','program','round','status'].every(key=>key in output))return null;
-  return {event:name,...output};
- }
- function cleanReferrer(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?(u.origin+u.pathname).slice(0,300):'';}catch{return '';}}
- function campaignValue(value){return typeof value==='string'&&/^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:undefined;}
- function secureUUID(crypto){
-  try{if(typeof crypto?.randomUUID==='function')return crypto.randomUUID();}catch{}
-  try{
-   if(typeof crypto?.getRandomValues!=='function')return null;
-   const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);
-   bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
-   const hex=Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('');
-   return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
-  }catch{return null;}
- }
- const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue,browserInfo,secureUUID};
+ function safeReferrer(value){try{const url=new URL(value);return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password?url.origin+url.pathname:'';}catch{return '';}}
+ const helpers={cleanDimensions,cleanPath,safeLocation,safeReferrer};
  if(typeof module==='object'&&module.exports){module.exports=helpers;return;}
  if(!root.document)return;
- const doc=root.document,KEY='chance-anonymous-stats-off-v1',LEGACY='chance-consent-v1';
- const production=['chance-me.com','www.chance-me.com'].includes(root.location.hostname);
- let optedOut=false,loaded=false,events=[],timer=null,inflight=false,visitId=null;
- const VISIT_KEY='chanceme.product-visit.v2';
+ const doc=root.document,production=['chance-me.com','www.chance-me.com'].includes(root.location.hostname);
+ let choice=null,loaded=false,pageSent=false,notice=null,started=false,gpaStarted=false;
  const blocked=()=>root.navigator.globalPrivacyControl===true||root.navigator.doNotTrack==='1'||root.doNotTrack==='1';
- const allowed=()=>production&&!optedOut&&!blocked();
+ const allowed=()=>choice===true&&!blocked();
  try{
-  const saved=root.localStorage.getItem(KEY);
-  optedOut=saved==='1';
-  // Preserve a previous explicit refusal instead of treating the migration as acceptance.
-  if(saved===null){
-   const previous=JSON.parse(root.localStorage.getItem(LEGACY));
-   if(previous?.expires>Date.now()&&previous.analytics===false){optedOut=true;root.localStorage.setItem(KEY,'1');}
-  }
+  let saved=JSON.parse(root.localStorage.getItem(KEY));
+  if(!saved)saved=JSON.parse(root.localStorage.getItem('chance-consent-v1'));
+  if(saved&&saved.expires>Date.now()&&typeof saved.analytics==='boolean')choice=saved.analytics;
+  else if(root.localStorage.getItem('chance-anonymous-stats-off-v1')==='1')choice=false;
  }catch{}
- // Cleanup is independent of parsing an old or malformed preference.
- try{root.localStorage.removeItem(LEGACY);root.localStorage.removeItem('__va_attribution');}catch{}
- function clearLegacyCookies(){
-  if(!production)return;
-  try{
-   for(const cookie of doc.cookie.split(';')){
-    const name=cookie.split('=')[0].trim();
-    if(!/^(_ga(?:_|$)|_gid$|_gat(?:_|$)|_clck$|_clsk$)/.test(name))continue;
-    for(const domain of ['',root.location.hostname,'.chance-me.com'])doc.cookie=name+'=; Max-Age=0; Path=/'+(domain?'; Domain='+domain:'');
-   }
-  }catch{}
+ // Vercel never waits for, or reads, the optional Google Analytics choice.
+ function vercelPageView(event){
+  try{const url=new URL(event.url||root.location.origin+root.location.pathname,root.location.origin);return {...event,url:url.origin+url.pathname};}
+  catch{return {...event,url:root.location.origin+root.location.pathname};}
  }
- function beforeSend(event){
-  if(!allowed()||event.type!=='pageview')return null;
-  // Drop unexpected external referrer query data rather than forwarding it.
-  try{if(doc.referrer){const ref=new URL(doc.referrer);if(ref.search||ref.hash||ref.username||ref.password)return null;}}catch{return null;}
-  // Return only the safe page URL: no profile fragment, query, payload, identity or flags.
-  return {type:'pageview',url:safeLocation(root.location)};
+ function startVercel(){
+  if(!production)return;
+  root.va=root.va||function(){(root.vaq=root.vaq||[]).push(arguments);};
+  root.va('beforeSend',vercelPageView);
+  script('/_vercel/insights/script.js');
+ }
+
+ function script(src){const s=doc.createElement('script');s.src=src;s.async=true;doc.head.appendChild(s);}
+ function consent(state){return {analytics_storage:state?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'};}
+ function track(name,parameters={}){
+  if(!allowed()||!production||!events.has(name))return;
+  const params=cleanDimensions(parameters);
+  root.gtag('event',name,{...params,page_location:safeLocation(root.location),page_path:cleanPath(root.location.pathname),page_referrer:safeReferrer(doc.referrer),send_to:GA});
  }
  function start(){
-  if(!allowed()||loaded)return;
-  loaded=true;
-  root.va=root.va||function(){(root.vaq=root.vaq||[]).push(arguments);};
-  root.va('beforeSend',beforeSend);
-  const script=doc.createElement('script');script.src='/_vercel/insights/script.js';script.async=true;
-  doc.head.appendChild(script);
-  track('page_view');
+  if(!allowed()||!production)return;
+  if(!loaded){
+   loaded=true;root.dataLayer=root.dataLayer||[];root.gtag=root.gtag||function(){root.dataLayer.push(arguments);};
+   root.gtag('consent','default',consent(false));root.gtag('js',new Date());
+   root.gtag('set',{page_location:safeLocation(root.location),page_referrer:safeReferrer(doc.referrer),allow_google_signals:false,allow_ad_personalization_signals:false});
+   root.gtag('consent','update',consent(true));
+   root.gtag('config',GA,{send_page_view:false,page_location:safeLocation(root.location),page_referrer:safeReferrer(doc.referrer),allow_google_signals:false,allow_ad_personalization_signals:false});
+   script('https://www.googletagmanager.com/gtag/js?id='+GA);
+
+  }
+  root['ga-disable-'+GA]=false;
+  root.gtag('consent','update',consent(true));
+  if(!pageSent){pageSent=true;track('page_view');const guide=guideName();if(guide)track('guide_opened',{guide});}
  }
- function renderSettings(){
-  const message=!production?'Statistics are disabled in this preview.':blocked()?'Your browser’s privacy signal disables statistics.':optedOut?'Visit and product statistics are off in this browser.':'Visit and product statistics are on in this browser.';
-  doc.querySelectorAll('[data-analytics-status]').forEach(node=>{node.textContent=message;});
-  doc.querySelectorAll('[data-analytics-toggle]').forEach(button=>{
-   button.hidden=false;button.disabled=!production||blocked();
-   button.textContent=optedOut?'Enable statistics':'Turn off statistics';
-  });
+ function guideName(){return root.location.pathname==='/bocconi-sat-score/'?'bocconi_sat_score':root.location.pathname==='/bocconi-test-score/'?'bocconi_test_score':null;}
+ function setChoice(value){
+  const wasAllowed=allowed();choice=value;
+  try{root.localStorage.setItem(KEY,JSON.stringify({analytics:value,expires:Date.now()+180*86400000}));}catch{}
+  if(notice){notice.remove();notice=null;}
+  if(allowed())start();
+  else{
+   root['ga-disable-'+GA]=true;
+   if(root.gtag)root.gtag('consent','update',consent(false));
+   for(const cookie of doc.cookie.split(';')){const name=cookie.split('=')[0].trim();if(!/^(_ga|_gid|_gat|_clck|_clsk)/.test(name))continue;for(const domain of ['',root.location.hostname,'.chance-me.com'])doc.cookie=name+'=; Max-Age=0; Path=/'+(domain?'; Domain='+domain:'');}
+   // Stop already-loaded third-party libraries after withdrawal. The local draft survives reload.
+   if(wasAllowed&&loaded)root.location.reload();
+  }
  }
- function setOptOut(value){
-  optedOut=value;
-  if(value){clearEvents();visitId=null;try{root.sessionStorage.removeItem(VISIT_KEY);}catch{}}
-  try{root.localStorage.setItem(KEY,value?'1':'0');}catch{}
-  renderSettings();
-  if(!value)start();
-  // Stop the already-loaded library after withdrawal; the calculator draft stays intact.
-  else if(loaded)root.location.reload();
+ function showSettings(){
+  if(notice)return;
+  notice=doc.createElement('section');notice.className='cookie-notice';notice.setAttribute('data-nosnippet','');notice.setAttribute('aria-label','Analytics preferences');
+  const title=doc.createElement('h2');title.textContent='Google Analytics';
+  const text=doc.createElement('p');text.append('Help us improve Chance Me with optional Google Analytics. Your scores and grades aren’t included. ');
+  const link=doc.createElement('a');link.href='/privacy/';link.textContent='Privacy';text.append(link);
+  const actions=doc.createElement('div');actions.className='cookie-actions';
+  for(const [label,value] of [['Accept',true],['Reject',false]]){const button=doc.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',()=>setChoice(value));actions.append(button);}
+  notice.append(title,text);
+  if(blocked()){const status=doc.createElement('p');status.className='cookie-status';status.textContent='Your browser’s privacy signal disables Google Analytics.';notice.append(status);}
+  notice.append(actions);doc.body.append(notice);
  }
- function clearEvents(){events=[];if(timer!==null){root.clearTimeout(timer);timer=null;}}
- function schedule(){if(timer===null&&events.length)timer=root.setTimeout(flush,5000);}
- function flush(){
-  if(timer!==null){root.clearTimeout(timer);timer=null;}
-  if(!allowed()){clearEvents();return;}
-  if(inflight||!events.length)return;
-  const batch=events;events=[];
-  const body=JSON.stringify({version:2,events:batch});
-  if(body.length>8192)return;
-  inflight=true;
-  // Single attempt; never replay failed batches or block the calculator.
-  try{Promise.resolve(root.fetch('/api/product-events',{method:'POST',headers:{'Content-Type':'application/json'},body,credentials:'omit',referrerPolicy:'no-referrer',keepalive:true})).catch(()=>{}).finally(()=>{inflight=false;if(allowed())schedule();else clearEvents();});}catch{inflight=false;}
- }
- function getVisitId(){
-  if(!allowed())return null;
-  if(visitId)return visitId;
-  const valid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-  // Explicit report navigation carries the random context in its fragment only.
-  try{if(root.location.pathname==='/report/'){const carried=new URLSearchParams(root.location.hash.slice(1)).get('visit_id');if(valid(carried))visitId=carried;}}catch{}
-  if(!visitId)try{const stored=root.sessionStorage.getItem(VISIT_KEY);if(valid(stored))visitId=stored;}catch{}
-  if(!visitId)visitId=secureUUID(root.crypto);
-  if(!visitId)return null;
-  try{root.sessionStorage.setItem(VISIT_KEY,visitId);}catch{}
-  return visitId;
- }
- function track(name,input){
-  try{
-   if(!allowed()){clearEvents();return false;}
-   const event=cleanEvent(name,input);if(!event||events.length>=16)return false;
-   const currentVisit=getVisitId();if(!currentVisit)return false;
-   const ua=root.navigator.userAgent||'';
-   const device=/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)?'tablet':/Mobi|iPhone|Android/i.test(ua)?'mobile':'desktop';
-   const params=new URLSearchParams(root.location.search||''),campaign={};
-   for(const [key,param] of [['source','utm_source'],['medium','utm_medium'],['campaign','utm_campaign'],['content','utm_content'],['term','utm_term'],['utm_id','utm_id']]){const value=campaignValue(params.get(param));if(value)campaign[key]=value;}
-   const environment=browserInfo(ua);
-   try{const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;if(typeof timezone==='string'&&timezone.length<=80)environment.timezone=timezone;}catch{}
-   const offset=new Date().getTimezoneOffset();if(Number.isInteger(offset)&&offset>=-840&&offset<=840)environment.utc_offset_minutes=offset;
-   const id=secureUUID(root.crypto);if(!id)return false;
-   const item={id,...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...environment,...campaign};
-   if(JSON.stringify({version:2,events:events.concat(item)}).length>8192)return false;
-   events.push(item);schedule();if(events.length===16)flush();return true;
-  }catch{return false;}
- }
- root.ChanceAnalytics={track,allowed,visitId:getVisitId,scoreBand,gpaBand,showSettings:()=>root.location.assign('/privacy/#analytics')};
- root.addEventListener?.('pagehide',flush);
- doc.addEventListener?.('visibilitychange',()=>{if(doc.visibilityState==='hidden')flush();});
- doc.addEventListener?.('click',event=>{
-  const link=event.target.closest?.('a[href]');if(!link)return;
-  let url;try{url=new URL(link.href,root.location.origin);}catch{return;}
-  const local=url.origin===root.location.origin;
-  const destination=local?({'/':'calculator','/bocconi-gpa-calculator/':'gpa','/sat-tutoring/':'lessons','/bocconi-sat-score/':'sat_guide','/bocconi-test-score/':'bocconi_test_guide','/report/':'report'}[url.pathname]):url.hostname==='wa.me'?'whatsapp':url.hostname==='cal.com'?'booking':null;
-  // An in-page booking CTA is also meaningful; unrelated anchor navigation is not.
-  const resolved=local&&['#booking','#book-lesson'].includes(url.hash)?'booking':destination;
-  if(!resolved||(local&&url.pathname===root.location.pathname&&!['#booking','#book-lesson'].includes(url.hash)))return;
-  const position=link.closest('header')?'header':link.closest('footer')?'footer':link.closest('.hero')?'hero':'content';
-  track('cta_clicked',{destination:resolved,position});
+ root.ChanceAnalytics={track,showSettings,allowed};
+ doc.querySelectorAll('[data-cookie-settings]').forEach(button=>button.addEventListener('click',showSettings));
+ const form=doc.getElementById('profile-form');
+ if(form)form.addEventListener('input',()=>{if(!started){started=true;track('calculator_started');}},{passive:true});
+ const gpa=doc.getElementById('gpa-form');
+ if(gpa)gpa.addEventListener('input',()=>{if(!gpaStarted){gpaStarted=true;track('gpa_started');}},{passive:true});
+ doc.addEventListener('click',event=>{
+  const a=event.target.closest('a,button');if(!a)return;
+  const href=a.getAttribute('href')||'';
+  let destination=href==='#book-lesson'?'booking':href.startsWith('https://wa.me/')?'whatsapp':href.startsWith('/sat-tutoring/')?'lessons':href.startsWith('/bocconi-gpa-calculator/')?'gpa':href.startsWith('/bocconi-sat-score/')?'sat_guide':href.startsWith('/bocconi-test-score/')?'bocconi_test_guide':href.startsWith('/report/')?'report':null;
+  if(!destination)return;
+  const position=a.closest('header')?'header':a.closest('footer')?'footer':a.closest('.sat-hero,.hero')?'hero':'content';
+  track('cta_clicked',{position,destination});
+  if(destination==='booking')track('booking_cta_click',{position,destination});
+  if(destination==='whatsapp')track('whatsapp_click',{position,destination});
+  if(destination==='report')track('full_report_opened',{position,destination});
+  const guide=guideName();if(guide)track('guide_cta_clicked',{guide,position,destination});
  });
- doc.querySelectorAll('[data-analytics-toggle]').forEach(button=>button.addEventListener('click',()=>setOptOut(!optedOut)));
- clearLegacyCookies();renderSettings();start();
+ startVercel();start();if(choice===null&&!blocked())showSettings();
 })(typeof window!=='undefined'?window:globalThis);

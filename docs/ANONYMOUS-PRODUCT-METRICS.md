@@ -1,3 +1,5 @@
+> Historical design, superseded by [independent Vercel and optional GA](ANALYTICS-RESTORE.md) on 2026-10-29. The first-party collector and local dashboard are retired.
+
 # Private product metrics on Vercel Hobby
 
 Scope updated 2026-10-29 at the owner’s explicit request: replace aggregate-only reporting with detailed tab visit history, exact submitted calculator values, date/country filters and source attribution. Older aggregate-only notes describe the previous release, not the current scope.
