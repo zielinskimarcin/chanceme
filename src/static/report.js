@@ -26,8 +26,6 @@ const ChanceReport = (function () {
     const params=new URLSearchParams();
     ["test_type","score","gpa","course","session","cycle","gpa_estimated"].forEach(key=>{if(input[key]!==undefined)params.set(key,String(input[key]));});
     if(cycle)params.set("year",cycle);
-    const visit=window.ChanceAnalytics?.visitId?.();
-    if(typeof visit==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visit))params.set('visit_id',visit);
     return "/report/#"+params.toString();
   }
   function csvCell(value) {
@@ -165,24 +163,17 @@ const ChanceReport = (function () {
       const d=estimate.status==="fulfilled"?estimate.value:null;
       if(!d||!["estimated","ineligible"].includes(d.status||"estimated")||!finite(d.probability)||d.probability<0||d.probability>1||typeof d.display_percent!=="string"||!/^(?:<1|>99|100|\d{1,2})%$/.test(d.display_percent)){
         course.value=own.input.course;round.value=own.input.session;own.dataset=previousDataset;showEstimate(own.data);if(own.dataset)update();
-        if(fullPage)window.ChanceAnalytics?.track('report_failed',{reason:'unavailable'});
         error.replaceChildren(node("span","Couldn’t update the estimate."),button("Try again","text-button",()=>{course.value=target.course;round.value=target.session;load(true);}));return;
       }
       own.input=target;own.course=target.course;own.session=target.session;own.data=d;if(recalculate)showEstimate(d);
-      if(recalculate){
-        const analytics=window.ChanceAnalytics,score_band=analytics?.scoreBand?.(target.test_type,target.score),gpa_band=analytics?.gpaBand?.(target.gpa);
-        analytics?.track('calculator_completed',{test_type:target.test_type,program:target.course,round:target.session,status:d.status,score:target.score,gpa:target.gpa,gpa_estimated:target.gpa_estimated===true,gpa_confirmed:target.gpa_confirmed===true,cycle:target.cycle,applicant_category:target.applicant_category,probability:d.probability*100,result_band:d.probability<.35?'lower':d.probability<.65?'balanced':'stronger',result:{probability:d.probability,display_percent:d.display_percent,status:d.status},...(score_band?{score_band}:{}),...(gpa_band?{gpa_band}:{})});
-      }
       if(recalculate){if(byId("course"))byId("course").value=target.course;if(byId("session"))byId("session").value=target.session;renderResult(d,target,{skipEvidence:true});}
       const reports=comparison.status==="fulfilled"?comparison.value:null;
       if(!reports||reports.status!=="ok"||!Array.isArray(reports.records)){
-        if(fullPage)window.ChanceAnalytics?.track('report_failed',{reason:'unavailable'});
         summary.replaceChildren(node("p","Reports unavailable."));error.replaceChildren(node("span","Couldn’t load the comparison data."),button("Try again","text-button",()=>load()));return;
       }
       own.dataset=reports;const previous=own.cycle;cycle.replaceChildren();const allOption=node("option","All cycles");allOption.value="";cycle.append(allOption);
       reports.by_year.slice().reverse().forEach(r=>{const o=node("option",year(r.cycle));o.value=r.cycle;cycle.append(o);});
       own.cycle=reports.by_year.some(r=>r.cycle===previous)?previous:"";cycle.value=own.cycle;own.view=null;own.showAll=false;error.hidden=true;update();
-      if(fullPage&&!own.measured){own.measured=true;window.ChanceAnalytics?.track('report_rendered');}
     }
     course.addEventListener("change",()=>load(true));round.addEventListener("change",()=>load(true));
     cycle.addEventListener("change",()=>{own.cycle=cycle.value;own.view=null;own.showAll=false;update();});
@@ -199,7 +190,7 @@ const ChanceReport = (function () {
       host.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)<5&&!own.wasDrag)return;if(!own.wasDrag)host.setPointerCapture(drag.id);own.wasDrag=true;const v=drag.view;own.view=clampView({xmin:v.xmin-dx/drag.box.width*(v.xmax-v.xmin),xmax:v.xmax-dx/drag.box.width*(v.xmax-v.xmin),ymin:v.ymin+dy/drag.box.height*(v.ymax-v.ymin),ymax:v.ymax+dy/drag.box.height*(v.ymax-v.ymin)},input);if(!frame)frame=requestAnimationFrame(()=>{frame=null;draw();});});
       function endDrag(){if(drag&&host.hasPointerCapture(drag.id))host.releasePointerCapture(drag.id);drag=null;}host.addEventListener("pointerup",endDrag);host.addEventListener("pointercancel",endDrag);host.addEventListener("pointerleave",()=>{if(drag&&!own.wasDrag)drag=null;});
     }
-    pdf.addEventListener("click",async()=>{pdf.disabled=true;pdf.textContent="Creating PDF…";exportStatus.textContent="";own.exportRequest=new AbortController();try{const res=await fetch("/api/report.pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:own.input,filters:{course:own.course,session:own.session,cycle:own.cycle}}),signal:own.exportRequest.signal});if(!res.ok)throw new Error("PDF unavailable");const blob=await res.blob();if(!blob.size||blob.type.split(";")[0].toLowerCase()!=="application/pdf")throw new Error("Invalid PDF payload");if(current===own&&own.visible){window.ChanceAnalytics?.track('pdf_generated');download(blob,"chance-me-report.pdf");window.ChanceAnalytics?.track('pdf_download_initiated',{destination:'pdf'});}}catch(e){if(e.name!=="AbortError"){window.ChanceAnalytics?.track('pdf_failed',{reason:'unavailable'});exportStatus.textContent="The PDF couldn’t be created. Please try again.";}}finally{pdf.disabled=!own.dataset;pdf.textContent="Download PDF ↓";}});
+    pdf.addEventListener("click",async()=>{pdf.disabled=true;pdf.textContent="Creating PDF…";exportStatus.textContent="";own.exportRequest=new AbortController();try{const res=await fetch("/api/report.pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:own.input,filters:{course:own.course,session:own.session,cycle:own.cycle}}),signal:own.exportRequest.signal});if(!res.ok)throw new Error("PDF unavailable");const blob=await res.blob();if(!blob.size||blob.type.split(";")[0].toLowerCase()!=="application/pdf")throw new Error("Invalid PDF payload");if(current===own&&own.visible){download(blob,"chance-me-report.pdf");window.ChanceAnalytics?.track('pdf_download',{destination:'pdf'});}}catch(e){if(e.name!=="AbortError")exportStatus.textContent="The PDF couldn’t be created. Please try again.";}finally{pdf.disabled=!own.dataset;pdf.textContent="Download PDF ↓";}});
     own.redraw=()=>{draw();renderRows();};open();load();
   }
   document.addEventListener("click",function(e){if(current&&current.hideTip&&!e.target.closest(".chart-report, .chart-tooltip"))current.hideTip();});

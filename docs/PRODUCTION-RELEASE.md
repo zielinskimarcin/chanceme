@@ -1,3 +1,5 @@
+> Current analytics: [Vercel independently plus optional Google Analytics](ANALYTICS-RESTORE.md), restored 2026-10-29. Older analytics descriptions below are release history.
+
 # Campus production release — 2026-10-27
 
 ## Current analytics: no automatic popup — 2026-10-28

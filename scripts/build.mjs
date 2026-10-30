@@ -27,7 +27,7 @@ const header=base.match(/<header class="site-header">[\s\S]*?<\/header>/)[0].rep
 const footer=base.match(/<footer class="site-footer">[\s\S]*?<\/footer>/)[0].replaceAll('href="#','href="/#');
 const plain=(title,body)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><link rel="stylesheet" href="/campus.css"><script src="/navigation.js" defer></script></head><body><div class="site-shell">${header}<main class="plain-copy"><h1>${title}</h1>${body}</main>${footer}</div></body></html>`;
 fs.writeFileSync('dist/privacy.html',plain('Privacy & analytics',read('src/privacy.html')));
-pages.push({file:'privacy.html',url:'/privacy/',title:'Privacy & Analytics | Chance Me',description:'How Chance Me handles calculator inputs, cookieless traffic statistics, local drafts and lesson bookings.',name:'Privacy & analytics'});
+pages.push({file:'privacy.html',url:'/privacy/',title:'Privacy & Analytics | Chance Me',description:'How Chance Me handles calculator inputs, traffic statistics, optional Google Analytics, local drafts and lesson bookings.',name:'Privacy & analytics'});
 fs.writeFileSync('dist/404.html',plain('Page not found','<p>This page does not exist. You can return to the <a href="/">admission calculator</a>, use the <a href="/bocconi-gpa-calculator/">GPA calculator</a> or browse the guides above.</p>'));
 fs.rmSync('public',{recursive:true,force:true});fs.mkdirSync('public');
 fs.cpSync('dist/assets','public/assets',{recursive:true});

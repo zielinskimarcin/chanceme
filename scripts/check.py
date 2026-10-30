@@ -136,7 +136,7 @@ def validate(directory=ROOT / 'public', production=None):
                 require(not attrs.get('src'), f'{route}: eager third-party iframe')
         privacy_links = [attrs.get('href') for tag, attrs in page.tags if tag == 'a']
         require('/privacy/' in privacy_links, f'{route}: no privacy link')
-        require('data-cookie-settings' not in text and 'cookie-notice' not in text, f'{route}: obsolete cookie popup control')
+        require(any('data-cookie-settings' in attrs for _, attrs in page.tags), f'{route}: no Google Analytics settings control')
     # Resolve same-origin navigation, fragment targets, all HTML asset references,
     # and social images. External destinations are not fetched by this offline gate.
     for route, page in pages.items():
