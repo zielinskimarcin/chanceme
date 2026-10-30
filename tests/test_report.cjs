@@ -180,3 +180,10 @@ test('full-report link carries allowed visit context only in the fragment',async
  x.scope.window.ChanceAnalytics.visitId=()=>null;assert.equal(new URLSearchParams(x.api.reportURL(profile,'').split('#')[1]).has('visit_id'),false);
  x.scope.window.ChanceAnalytics.visitId=()=> 'invalid';assert.equal(x.api.reportURL(profile,'').includes('visit_id'),false);
 });
+
+test('explicit report programme and round recalculations record exact inputs and result, never initial automatic load',async()=>{
+ const events=[],x=setup(async url=>ok(url==='/api/estimate'?estimate(54):comparison()),true);x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};
+ x.api.render(estimate(),{...profile,gpa_estimated:true});await tick();assert.equal(events.filter(e=>e[0]==='calculator_completed').length,0);
+ await selected(x,'report-course','Finance');await selected(x,'report-round','Early');
+ const completed=events.filter(e=>e[0]==='calculator_completed');assert.equal(completed.length,2);assert.equal(completed[1][1].score,1450);assert.equal(completed[1][1].gpa,9);assert.equal(completed[1][1].program,'Finance');assert.equal(completed[1][1].round,'Early');assert.equal(completed[1][1].gpa_estimated,true);assert.equal(completed[1][1].gpa_confirmed,true);assert.equal(completed[1][1].cycle,'27-28');assert.equal(completed[1][1].applicant_category,'international');assert.equal(JSON.stringify(completed[1][1].result),JSON.stringify({probability:.54,display_percent:'54%',status:'estimated'}));
+});

@@ -50,3 +50,23 @@ test('history date/country/action filters and order drive the actual visible row
  assert.equal(restored('history-country').value,'PL');assert.equal(restored('history-event').value,'calculator_completed');assert.equal(restored('history-rows').children.length,1);
  restored('history-visit').value='a';restored('history-visit').listeners.input();const hashParams=new URLSearchParams(savedHash.slice(1));assert.equal(hashParams.get('visit'),'a');assert.equal(hashParams.get('country'),'PL');assert.ok(!savedHash.includes('1520'));assert.ok(!savedHash.includes('9.32'));
 });
+test('QA separation, inferred visit source, full inputs and filtered formula-safe CSV',async()=>{
+ const {renderReport}=await import('../scripts/product-metrics-report.mjs');
+ const {summarize,freshState}=await import('../lib/product-metrics.mjs');
+ const records=[
+ {event:'page_view',traffic:'user',details:{visit_id:'visitor',source:'google',page:'/calculator',occurred_at:'2026-10-29T12:00:00Z'}},
+ {event:'calculator_completed',traffic:'user',dimensions:{program:'=HYPERLINK("evil")',test_type:'SAT',round:'Winter'},details:{visit_id:'visitor',score:1510,gpa:9.4,cycle:'2027',applicant_category:'International',gpa_confirmed:true,gpa_estimated:false,inputs:{grades:[9,10]},result:{probability:0.72,status:'ok'},browser:'Firefox',os:'Windows',timezone:'Europe/Warsaw',utc_offset_minutes:120,content:'sidebar',term:'admissions',utm_id:'autumn26',occurred_at:'2026-10-29T12:01:00Z'}},
+ {event:'calculator_completed',traffic:'test',details:{visit_id:'qa_1',source:'owner-qa',score:1600,occurred_at:'2026-10-29T13:00:00Z'}},
+ ];
+ const html=renderReport(summarize(freshState(),{now}),{records,now});
+ class Element{constructor(){this.value='';this.children=[];this.listeners={};this.textContent=''}append(...nodes){this.children.push(...nodes)}replaceChildren(...nodes){this.children=nodes}addEventListener(n,fn){this.listeners[n]=fn}click(){}}
+ const ids=new Map();const get=id=>{if(!ids.has(id))ids.set(id,new Element());return ids.get(id)};get('history-data').textContent=JSON.stringify(records);get('history-sort').value='desc';let exported;
+ class CsvURL extends URL{static createObjectURL(blob){exported=blob;return 'blob:test'}static revokeObjectURL(){}}
+ vm.runInNewContext(html.match(/<\/script><script>([\s\S]*?)<\/script>/)[1],{document:{getElementById:get,createElement:()=>new Element()},Blob,URL:CsvURL,setTimeout:()=>{}});
+ assert.equal(get('history-traffic').value,'user');assert.equal(get('history-rows').children.length,2);assert.ok(get('history-traffic-note').textContent.includes('1 known QA/test'));
+ get('history-source').value='google';get('history-source').listeners.input();assert.equal(get('history-rows').children.length,2);
+ const row=get('history-rows').children[0];assert.ok(row.children[3].textContent.includes('1510'));assert.ok(row.children[3].textContent.includes('grades'));assert.ok(row.children[3].textContent.includes('International'));assert.ok(row.children[5].textContent.includes('Firefox'));assert.ok(row.children[5].textContent.includes('Europe/Warsaw'));
+ assert.equal(get('history-visits').children[0].open,true);assert.ok(get('history-visits').children[0].children.some(n=>n.className==='visit-preview'&&n.textContent.includes('1510')));
+ get('history-export').listeners.click();const csv=await exported.text();assert.ok(csv.includes("'=HYPERLINK"));assert.ok(csv.includes('1510'));assert.ok(!csv.includes('1600'));assert.ok(csv.includes('google'));assert.ok(csv.includes('gpa_confirmed'));assert.ok(csv.includes('utc_offset_minutes'));assert.ok(csv.includes('sidebar'));assert.ok(csv.includes('admissions'));assert.ok(csv.includes('autumn26'));
+ get('history-source').value='';get('history-traffic').value='test';get('history-traffic').listeners.input();assert.equal(get('history-rows').children.length,1);assert.ok(get('history-rows').children[0].children[3].textContent.includes('1600'));
+});

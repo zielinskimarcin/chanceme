@@ -9,7 +9,7 @@ let cached='',expires=0,pending;
 async function report(){
  if(cached&&Date.now()<expires)return cached;
  if(pending)return pending;
- pending=(async()=>{const now=new Date();const [state,records]=await Promise.all([store.history(30,now),store.detailedHistory(30,now)]);cached=renderReport(summarize(state,{days:30,now}),{records,now}).replace('</head>','<meta http-equiv="refresh" content="60"></head>').replace('Refreshing this file does not fetch new data; regenerate the private report to update it.','Live local dashboard: refreshes from storage every 60 seconds while this process runs.');expires=Date.now()+30000;return cached;})();
+ pending=(async()=>{const now=new Date();const [state,records]=await Promise.all([store.history(30,now),store.detailedHistory(30,now)]);cached=renderReport(summarize(state,{days:30,now,privateDetails:true}),{records,now}).replace('</head>','<meta http-equiv="refresh" content="60"></head>').replace('Refreshing this file does not fetch new data; regenerate the private report to update it.','Live local dashboard: refreshes from storage every 60 seconds while this process runs.');expires=Date.now()+30000;return cached;})();
  try{return await pending;}finally{pending=undefined;}
 }
 http.createServer(async(req,res)=>{

@@ -6,7 +6,7 @@
  function cleanPath(path){return paths.has(path)?path:'/404/';}
  function cleanDimensions(input){const out={};for(const [key,allowed] of Object.entries(dimensions))if(allowed.includes(input?.[key]))out[key]=input[key];return out;}
  function safeLocation(location){return location.origin+cleanPath(location.pathname);}
- const eventDimensions={page_view:[],calculator_completed:['test_type','program','round','status','result_band','score_band','gpa_band','score','gpa','probability'],calculator_failed:['reason'],gpa_calculated:[],gpa_transferred:['destination'],report_rendered:[],report_failed:['reason'],pdf_generated:[],pdf_failed:['reason'],pdf_download_initiated:['destination'],cta_clicked:['destination','position'],booking_confirmed:['destination']};
+ const eventDimensions={page_view:[],calculator_completed:['test_type','program','round','status','result_band','score_band','gpa_band','score','gpa','probability','gpa_estimated','cycle','applicant_category','gpa_confirmed','result'],calculator_failed:['reason'],gpa_calculated:[],gpa_transferred:['destination'],report_rendered:[],report_failed:['reason'],pdf_generated:[],pdf_failed:['reason'],pdf_download_initiated:['destination'],cta_clicked:['destination','position'],booking_confirmed:['destination']};
  function scoreBand(kind,value){
   if(typeof value!=='number'||!Number.isFinite(value))return undefined;
   if(kind==='SAT'){if(value<400||value>1600)return undefined;return value>=1550?'1550-1600':Math.floor(value/50)*50+'-'+(Math.floor(value/50)*50+49);}
@@ -16,6 +16,12 @@
  const satBands=new Set(Array.from({length:23},(_,i)=>(400+i*50)+'-'+(449+i*50)).concat('1550-1600'));
  const btBands=new Set(Array.from({length:24},(_,i)=>(i*2)+'-'+(i*2+1)+'.99').concat('48-50'));
  const gpaBands=new Set(Array.from({length:39},(_,i)=>(i/4).toFixed(2)+'-'+(i/4+.24).toFixed(2)).concat('9.75-10.00'));
+ function validResult(value){return value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(k=>['probability','display_percent','status'].includes(k))&&typeof value.probability==='number'&&Number.isFinite(value.probability)&&value.probability>=0&&value.probability<=1&&typeof value.display_percent==='string'&&value.display_percent.length<=10&&/^(?:<1|>99|100|\d{1,2})%$/.test(value.display_percent)&&dimensions.status.includes(value.status);}
+ function browserInfo(ua){
+  const browser=/Edg(?:e|A|iOS)?\//i.test(ua)?'Edge':/OPR\/|Opera/i.test(ua)?'Opera':/SamsungBrowser\//i.test(ua)?'Samsung Internet':/Firefox\/|FxiOS\//i.test(ua)?'Firefox':/Chrome\/|CriOS\//i.test(ua)?'Chrome':/Safari\//i.test(ua)?'Safari':'Other';
+  const os=/iPhone|iPad|iPod/i.test(ua)?'iOS':/Android/i.test(ua)?'Android':/CrOS/i.test(ua)?'ChromeOS':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Other';
+  return {browser,os};
+ }
  function cleanEvent(name,input={}){
   if(!Object.prototype.hasOwnProperty.call(eventDimensions,name))return null;
   const keys=eventDimensions[name];if(!input||typeof input!=='object'||Array.isArray(input))return null;
@@ -24,7 +30,7 @@
   const output={};
   for(const key of Object.keys(input)){
    const value=input[key];
-   const valid=['score','gpa','probability'].includes(key)?typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=({score:1600,gpa:10,probability:100}[key]):key==='score_band'?(input.test_type==='SAT'?satBands:input.test_type==='Bocconi'?btBands:new Set()).has(value):key==='gpa_band'?gpaBands.has(value):dimensions[key]?.includes(value);
+   const valid=['gpa_estimated','gpa_confirmed'].includes(key)?typeof value==='boolean':key==='cycle'?value==='27-28':key==='applicant_category'?value==='international':key==='result'?validResult(value):['score','gpa','probability'].includes(key)?typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=({score:1600,gpa:10,probability:100}[key]):key==='score_band'?(input.test_type==='SAT'?satBands:input.test_type==='Bocconi'?btBands:new Set()).has(value):key==='gpa_band'?gpaBands.has(value):dimensions[key]?.includes(value);
    if(!valid)return null;output[key]=value;
   }
   if(name==='calculator_completed'&&!['test_type','program','round','status'].every(key=>key in output))return null;
@@ -32,7 +38,7 @@
  }
  function cleanReferrer(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?(u.origin+u.pathname).slice(0,300):'';}catch{return '';}}
  function campaignValue(value){return typeof value==='string'&&/^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:undefined;}
- const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue};
+ const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue,browserInfo};
  if(typeof module==='object'&&module.exports){module.exports=helpers;return;}
  if(!root.document)return;
  const doc=root.document,KEY='chance-anonymous-stats-off-v1',LEGACY='chance-consent-v1';
@@ -96,7 +102,7 @@
   else if(loaded)root.location.reload();
  }
  function clearEvents(){events=[];if(timer!==null){root.clearTimeout(timer);timer=null;}}
- function schedule(){if(timer===null&&events.length)timer=root.setTimeout(flush,30000);}
+ function schedule(){if(timer===null&&events.length)timer=root.setTimeout(flush,5000);}
  function flush(){
   if(timer!==null){root.clearTimeout(timer);timer=null;}
   if(!allowed()){clearEvents();return;}
@@ -127,8 +133,11 @@
    const ua=root.navigator.userAgent||'';
    const device=/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)?'tablet':/Mobi|iPhone|Android/i.test(ua)?'mobile':'desktop';
    const params=new URLSearchParams(root.location.search||''),campaign={};
-   for(const [key,param] of [['source','utm_source'],['medium','utm_medium'],['campaign','utm_campaign']]){const value=campaignValue(params.get(param));if(value)campaign[key]=value;}
-   const item={id:root.crypto.randomUUID(),...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...campaign};
+   for(const [key,param] of [['source','utm_source'],['medium','utm_medium'],['campaign','utm_campaign'],['content','utm_content'],['term','utm_term'],['utm_id','utm_id']]){const value=campaignValue(params.get(param));if(value)campaign[key]=value;}
+   const environment=browserInfo(ua);
+   try{const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;if(typeof timezone==='string'&&timezone.length<=80)environment.timezone=timezone;}catch{}
+   const offset=new Date().getTimezoneOffset();if(Number.isInteger(offset)&&offset>=-840&&offset<=840)environment.utc_offset_minutes=offset;
+   const item={id:root.crypto.randomUUID(),...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...environment,...campaign};
    if(JSON.stringify({version:2,events:events.concat(item)}).length>8192)return false;
    events.push(item);schedule();if(events.length===16)flush();return true;
   }catch{return false;}
