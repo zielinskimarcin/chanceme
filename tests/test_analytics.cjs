@@ -1,14 +1,14 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('src/static/analytics.js','utf8');
 const helpers=require('../src/static/analytics.js');
-function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',session=null,noSession=false,userAgent='',search='?score=1450',fetcher=()=>Promise.resolve({ok:true})}={}){
+function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',session=null,noSession=false,userAgent='',search='?score=1450',hash='#gpa=9',fetcher=()=>Promise.resolve({ok:true})}={}){
  const scripts=[],queue=[],writes=[],cookieWrites=[],requests=[],timers=new Map(),listeners={},documentListeners={},status={textContent:''};let timerId=0,eventId=0;
  const button={hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{button.click=fn;}};
  const sessionStorage=new Map(session||[]);
  const storage=new Map([['__va_attribution','{"userId":"old-private-id"}']]);if(legacyRaw!==null)storage.set('chance-consent-v1',legacyRaw);if(legacy!==null)storage.set('chance-consent-v1',JSON.stringify({analytics:legacy,expires:Date.now()+60000}));if(off!==null)storage.set('chance-anonymous-stats-off-v1',off);
  const document={referrer,addEventListener:(name,fn)=>documentListeners[name]=fn,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
  Object.defineProperty(document,'cookie',{get:()=>cookies,set:v=>cookieWrites.push(v)});
- const window={document,setTimeout:fn=>{const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},sessionStorage:{getItem:key=>{if(noSession)throw new Error('storage blocked');return sessionStorage.get(key)??null;},setItem:(key,value)=>{if(noSession)throw new Error('storage blocked');sessionStorage.set(key,value);},removeItem:key=>sessionStorage.delete(key)},navigator:{userAgent,globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search,hash:'#gpa=9',reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
+ const window={document,setTimeout:fn=>{const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},sessionStorage:{getItem:key=>{if(noSession)throw new Error('storage blocked');return sessionStorage.get(key)??null;},setItem:(key,value)=>{if(noSession)throw new Error('storage blocked');sessionStorage.set(key,value);},removeItem:key=>sessionStorage.delete(key)},navigator:{userAgent,globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search,hash,reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
  vm.runInNewContext(source,{window,Date,Set,JSON,Object,URL,URLSearchParams});
  return{scripts,queue,writes,cookieWrites,requests,timers,listeners,documentListeners,window,button,status,storage,sessionStorage,flush:()=>listeners.pagehide(),beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
 }
@@ -120,4 +120,14 @@ test('exact submitted inputs are permitted only on completed calculations',()=>{
 test('blocked session storage falls back to page memory without interrupting usage',()=>{
  const b=boot({noSession:true});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);b.flush();
  const events=JSON.parse(b.requests[0].init.body).events;assert.equal(events.length,2);assert.equal(events[0].visit_id,events[1].visit_id);assert.notEqual(events[0].id,events[1].id);assert.equal(b.sessionStorage.size,0);
+});
+
+test('new-tab report continuity uses only an allowed UUID fragment before its first page view',()=>{
+ const carried='12345678-1234-4123-8123-123456789abc';
+ const b=boot({path:'/report/',hash:'#score=1450&gpa=9&visit_id='+carried});assert.equal(b.window.ChanceAnalytics.visitId(),carried);b.flush();
+ const payload=JSON.parse(b.requests[0].init.body);assert.equal(payload.events[0].event,'page_view');assert.equal(payload.events[0].visit_id,carried);assert.equal(payload.events[0].page,'/report/');assert.equal(b.sessionStorage.get('chanceme.product-visit.v2'),carried);
+ assert.equal(b.beforeSend({type:'pageview'}).url,'https://chance-me.com/report/');assert.equal(b.beforeSend({type:'pageview'}).url.includes(carried),false);
+ const ordinary=boot({path:'/',hash:'#visit_id='+carried});assert.notEqual(ordinary.window.ChanceAnalytics.visitId(),carried);
+ const invalid=boot({path:'/report/',hash:'#visit_id=private@example.com'});assert.notEqual(invalid.window.ChanceAnalytics.visitId(),'private@example.com');
+ for(const options of [{off:'1'},{gpc:true},{dnt:true},{host:'preview.vercel.app'}]){const x=boot({...options,path:'/report/',hash:'#visit_id='+carried});assert.equal(x.window.ChanceAnalytics.visitId(),null);assert.equal(x.sessionStorage.size,0);}
 });

@@ -26,6 +26,8 @@ const ChanceReport = (function () {
     const params=new URLSearchParams();
     ["test_type","score","gpa","course","session","cycle","gpa_estimated"].forEach(key=>{if(input[key]!==undefined)params.set(key,String(input[key]));});
     if(cycle)params.set("year",cycle);
+    const visit=window.ChanceAnalytics?.visitId?.();
+    if(typeof visit==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(visit))params.set('visit_id',visit);
     return "/report/#"+params.toString();
   }
   function csvCell(value) {

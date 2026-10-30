@@ -108,24 +108,32 @@
   // Single attempt; never replay failed batches or block the calculator.
   try{Promise.resolve(root.fetch('/api/product-events',{method:'POST',headers:{'Content-Type':'application/json'},body,credentials:'omit',referrerPolicy:'no-referrer',keepalive:true})).catch(()=>{}).finally(()=>{inflight=false;if(allowed())schedule();else clearEvents();});}catch{inflight=false;}
  }
+ function getVisitId(){
+  if(!allowed())return null;
+  if(visitId)return visitId;
+  const valid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  // Explicit report navigation carries the random context in its fragment only.
+  try{if(root.location.pathname==='/report/'){const carried=new URLSearchParams(root.location.hash.slice(1)).get('visit_id');if(valid(carried))visitId=carried;}}catch{}
+  if(!visitId)try{const stored=root.sessionStorage.getItem(VISIT_KEY);if(valid(stored))visitId=stored;}catch{}
+  if(!visitId)try{visitId=root.crypto.randomUUID();}catch{return null;}
+  try{root.sessionStorage.setItem(VISIT_KEY,visitId);}catch{}
+  return visitId;
+ }
  function track(name,input){
   try{
    if(!allowed()){clearEvents();return false;}
    const event=cleanEvent(name,input);if(!event||events.length>=16||!root.crypto?.randomUUID)return false;
-   if(!visitId){
-    try{const stored=root.sessionStorage.getItem(VISIT_KEY);if(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored))visitId=stored;}catch{}
-    if(!visitId){visitId=root.crypto.randomUUID();try{root.sessionStorage.setItem(VISIT_KEY,visitId);}catch{}}
-   }
+   const currentVisit=getVisitId();if(!currentVisit)return false;
    const ua=root.navigator.userAgent||'';
    const device=/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)?'tablet':/Mobi|iPhone|Android/i.test(ua)?'mobile':'desktop';
    const params=new URLSearchParams(root.location.search||''),campaign={};
    for(const [key,param] of [['source','utm_source'],['medium','utm_medium'],['campaign','utm_campaign']]){const value=campaignValue(params.get(param));if(value)campaign[key]=value;}
-   const item={id:root.crypto.randomUUID(),...event,visit_id:visitId,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...campaign};
+   const item={id:root.crypto.randomUUID(),...event,visit_id:currentVisit,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...campaign};
    if(JSON.stringify({version:2,events:events.concat(item)}).length>8192)return false;
    events.push(item);schedule();if(events.length===16)flush();return true;
   }catch{return false;}
  }
- root.ChanceAnalytics={track,allowed,scoreBand,gpaBand,showSettings:()=>root.location.assign('/privacy/#analytics')};
+ root.ChanceAnalytics={track,allowed,visitId:getVisitId,scoreBand,gpaBand,showSettings:()=>root.location.assign('/privacy/#analytics')};
  root.addEventListener?.('pagehide',flush);
  doc.addEventListener?.('visibilitychange',()=>{if(doc.visibilityState==='hidden')flush();});
  doc.addEventListener?.('click',event=>{

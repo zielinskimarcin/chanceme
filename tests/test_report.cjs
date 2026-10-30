@@ -173,3 +173,10 @@ test('PDF events require a nonempty PDF response and ignore request cancellation
  x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};x.api.render(estimate(),profile);await tick();events.length=0;
  await find(x,e=>e.className==='report-download').listeners.click();assert.equal(events.length,0);
 });
+
+test('full-report link carries allowed visit context only in the fragment',async()=>{
+ const visit='12345678-1234-4123-8123-123456789abc',x=setup();x.scope.window.ChanceAnalytics={visitId:()=>visit};
+ const url=x.api.reportURL(profile,'26-27');assert.equal(url.split('#')[0],'/report/');assert.equal(new URLSearchParams(url.split('#')[1]).get('visit_id'),visit);
+ x.scope.window.ChanceAnalytics.visitId=()=>null;assert.equal(new URLSearchParams(x.api.reportURL(profile,'').split('#')[1]).has('visit_id'),false);
+ x.scope.window.ChanceAnalytics.visitId=()=> 'invalid';assert.equal(x.api.reportURL(profile,'').includes('visit_id'),false);
+});
