@@ -263,11 +263,11 @@ test("typing still invalidates a result while saving the cross-calculator draft"
   assert.equal(x.elements.percentage.textContent,'');assert.equal(JSON.parse(x.storage.get('chanceme.profile-draft.v1')).score,'1500');
 });
 
-test('only explicit successful calculation emits locally banded profile data',async()=>{
+test('only explicit successful calculation emits submitted values and coarse bands',async()=>{
  const x=await setup(),events=[],helpers=require('../src/static/analytics.js');
  x.context.window.ChanceAnalytics={scoreBand:helpers.scoreBand,gpaBand:helpers.gpaBand,track:(...args)=>events.push(args)};
  x.valid();await x.api.calculate();assert.equal(events.length,1);assert.equal(events[0][0],'calculator_completed');
- assert.equal(JSON.stringify(events[0][1]),JSON.stringify({test_type:'SAT',program:'Management',round:'Winter',status:'estimated',result_band:'balanced',score_band:'1450-1499',gpa_band:'9.00-9.24'}));
+ assert.equal(JSON.stringify(events[0][1]),JSON.stringify({test_type:'SAT',program:'Management',round:'Winter',status:'estimated',score:1450,gpa:9,probability:.5935634541610315*100,result_band:'balanced',score_band:'1450-1499',gpa_band:'9.00-9.24'}));
  x.api.renderResult(estimate(),x.api.readInput(),{skipEvidence:true});assert.equal(events.length,1);
 });
 test('failed explicit calculation emits only fixed failure reason and preserves form',async()=>{

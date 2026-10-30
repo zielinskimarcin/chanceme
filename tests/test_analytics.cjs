@@ -1,21 +1,22 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('src/static/analytics.js','utf8');
 const helpers=require('../src/static/analytics.js');
-function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',fetcher=()=>Promise.resolve({ok:true})}={}){
+function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',session=null,noSession=false,userAgent='',search='?score=1450',hash='#gpa=9',fetcher=()=>Promise.resolve({ok:true})}={}){
  const scripts=[],queue=[],writes=[],cookieWrites=[],requests=[],timers=new Map(),listeners={},documentListeners={},status={textContent:''};let timerId=0,eventId=0;
  const button={hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{button.click=fn;}};
+ const sessionStorage=new Map(session||[]);
  const storage=new Map([['__va_attribution','{"userId":"old-private-id"}']]);if(legacyRaw!==null)storage.set('chance-consent-v1',legacyRaw);if(legacy!==null)storage.set('chance-consent-v1',JSON.stringify({analytics:legacy,expires:Date.now()+60000}));if(off!==null)storage.set('chance-anonymous-stats-off-v1',off);
  const document={referrer,addEventListener:(name,fn)=>documentListeners[name]=fn,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
  Object.defineProperty(document,'cookie',{get:()=>cookies,set:v=>cookieWrites.push(v)});
- const window={document,setTimeout:fn=>{const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},navigator:{globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search:'?score=1450',hash:'#gpa=9',reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
- vm.runInNewContext(source,{window,Date,Set,JSON,Object,URL});
- return{scripts,queue,writes,cookieWrites,requests,timers,listeners,documentListeners,window,button,status,storage,flush:()=>listeners.pagehide(),beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
+ const window={document,setTimeout:fn=>{const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},sessionStorage:{getItem:key=>{if(noSession)throw new Error('storage blocked');return sessionStorage.get(key)??null;},setItem:(key,value)=>{if(noSession)throw new Error('storage blocked');sessionStorage.set(key,value);},removeItem:key=>sessionStorage.delete(key)},navigator:{userAgent,globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search,hash,reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
+ vm.runInNewContext(source,{window,Date,Set,JSON,Object,URL,URLSearchParams});
+ return{scripts,queue,writes,cookieWrites,requests,timers,listeners,documentListeners,window,button,status,storage,sessionStorage,flush:()=>listeners.pagehide(),beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
 }
 test('sanitizers drop scores, grades, report fragments and arbitrary values',()=>{
  assert.deepEqual(helpers.cleanDimensions({score:1450,gpa:9,email:'private@example.com',round:'Winter',program:'Management',destination:'/report/#gpa=9'}),{program:'Management',round:'Winter'});
  assert.equal(helpers.safeLocation({origin:'https://chance-me.com',pathname:'/report/',search:'?score=1450',hash:'#gpa=9'}),'https://chance-me.com/report/');
 });
-test('a new production visit starts only cookieless Vercel without clicking or writing an identifier',()=>{
+test('a new production visit starts cookieless measurement without clicking or writing persistent local identifiers',()=>{
  const b=boot();assert.deepEqual(b.scripts,['/_vercel/insights/script.js']);assert.deepEqual(b.writes,[]);assert.deepEqual(b.cookieWrites,[]);assert.deepEqual(b.queue.map(e=>e[0]),['beforeSend']);assert.equal(b.window.ChanceAnalytics.allowed(),true);
 });
 test('GPC, DNT, explicit opt-out and preview do not load measurement',()=>{
@@ -36,7 +37,7 @@ test('unknown page paths collapse to404 and unsafe referrer queries are not tran
  assert.equal(boot({referrer:'https://other.example/?email=private'}).beforeSend({type:'pageview'}),null);
  assert.equal(boot({referrer:'https://other.example/'}).beforeSend({type:'pageview'}).url,'https://chance-me.com/');
 });
-test('turning statistics off suppresses subsequent events, stores only an opt-out flag and stops the library',()=>{
+test('turning statistics off suppresses subsequent events, stores only a persistent opt-out flag and stops the library',()=>{
  const b=boot();b.button.click();assert.equal(b.beforeSend({type:'pageview'}),null);assert.equal(b.window.reloaded,true);assert.equal(b.storage.get('chance-anonymous-stats-off-v1'),'1');assert.deepEqual(b.writes,[['chance-anonymous-stats-off-v1','1']]);assert.match(b.status.textContent,/are off/);
 });
 test('live privacy signals suppress already-loaded measurement',()=>{
@@ -45,7 +46,7 @@ test('live privacy signals suppress already-loaded measurement',()=>{
 test('legacy GA and Clarity cookies are expired, while functional cookies are left intact',()=>{
  const b=boot({cookies:'_ga=old; _ga_TEST=old; _clck=old; _clsk=old; necessary=keep'});assert.equal(b.cookieWrites.length,12);assert.ok(b.cookieWrites.every(v=>v.includes('Max-Age=0')));assert.ok(b.cookieWrites.every(v=>!v.startsWith('necessary=')));
 });
-test('compatibility hooks do not send paid custom events or raw calculator inputs',()=>{
+test('incomplete calculation hooks are rejected and paid Vercel events are never emitted',()=>{
  const b=boot();const count=b.queue.length;assert.equal(b.window.ChanceAnalytics.track('calculator_completed',{score:1450,gpa:9}),false);assert.equal(b.queue.length,count);assert.equal(b.scripts.length,1);
 });
 
@@ -55,17 +56,17 @@ const profile={test_type:'SAT',program:'Finance',round:'Early',status:'estimated
 test('bands are coarse at boundaries and invalid inputs cannot become dimensions',()=>{
  assert.equal(helpers.scoreBand('SAT',1499),'1450-1499');assert.equal(helpers.scoreBand('SAT',1600),'1550-1600');assert.equal(helpers.scoreBand('SAT',399),undefined);
  assert.equal(helpers.scoreBand('Bocconi',33.999),'32-33.99');assert.equal(helpers.scoreBand('Bocconi',50),'48-50');assert.equal(helpers.gpaBand(9.249),'9.00-9.24');assert.equal(helpers.gpaBand(10),'9.75-10.00');assert.equal(helpers.gpaBand('9'),undefined);
- for(const extra of [{score:1450},{gpa:9},{email:'x@y.com'},{url:'/report/#score=1450'},{score_band:'1450'},{gpa_band:'9'},{test_type:'Bocconi',score_band:'1450-1499'}])assert.equal(helpers.cleanEvent('calculator_completed',{...profile,...extra}),null);
+ for(const extra of [{score:Infinity},{gpa:11},{email:'x@y.com'},{url:'/report/#score=1450'},{score_band:'1450'},{gpa_band:'9'},{test_type:'Bocconi',score_band:'1450-1499'}])assert.equal(helpers.cleanEvent('calculator_completed',{...profile,...extra}),null);
  assert.equal(helpers.cleanEvent('arbitrary',{}),null);assert.equal(helpers.cleanEvent('cta_clicked',{score_band:'1450-1499'}),null);
 });
 test('events are batched with independent short lived UUIDs and never paid Vercel events',async()=>{
  const b=boot();assert.equal(b.window.ChanceAnalytics.track('calculator_completed',profile),true);assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);
  assert.equal(b.requests.length,0);assert.equal(b.timers.size,1);b.flush();await Promise.resolve();
  assert.equal(b.requests.length,1);const request=b.requests[0],body=JSON.parse(request.init.body);assert.equal(request.url,'/api/product-events');assert.equal(request.init.credentials,'omit');assert.equal(request.init.referrerPolicy,'no-referrer');assert.equal(request.init.keepalive,true);
- assert.equal(body.version,1);assert.equal(body.events.length,2);assert.notEqual(body.events[0].id,body.events[1].id);assert.equal(body.events[0].score_band,'1450-1499');assert.equal(b.queue.length,1);assert.deepEqual(b.writes,[]);assert.deepEqual(b.cookieWrites,[]);
+ assert.equal(body.version,2);assert.equal(body.events.length,3);assert.notEqual(body.events[0].id,body.events[1].id);assert.equal(body.events[1].score_band,'1450-1499');assert.equal(b.queue.length,1);assert.deepEqual(b.writes,[]);assert.deepEqual(b.cookieWrites,[]);
 });
 test('a full batch flushes once, repeated lifecycle flush does not replay IDs',async()=>{
- const b=boot();for(let i=0;i<16;i++)assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);assert.equal(b.requests.length,1);b.flush();b.flush();assert.equal(b.requests.length,1);assert.equal(JSON.parse(b.requests[0].init.body).events.length,16);assert.ok(b.requests[0].init.body.length<=8192);
+ const b=boot();for(let i=0;i<15;i++)assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);assert.equal(b.requests.length,1);b.flush();b.flush();assert.equal(b.requests.length,1);assert.equal(JSON.parse(b.requests[0].init.body).events.length,16);assert.ok(b.requests[0].init.body.length<=8192);
 });
 test('failed requests are discarded without retries or blocking user actions',async()=>{
  const b=boot({fetcher:()=>Promise.reject(new Error('offline'))});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);b.flush();await new Promise(setImmediate);assert.equal(b.requests.length,1);assert.equal(b.timers.size,0);b.flush();assert.equal(b.requests.length,1);
@@ -94,11 +95,39 @@ test('maximum scores share a broad band with nearby values and singleton bands a
 });
 test('frontend events and band boundaries conform to the actual server validator',async()=>{
  const {validateBatch,EVENT_DIMENSIONS}=await import('../lib/product-metrics.mjs');
- const samples={calculator_completed:profile,calculator_failed:{reason:'unavailable'},gpa_calculated:{},gpa_transferred:{destination:'calculator'},report_rendered:{},report_failed:{reason:'unavailable'},pdf_generated:{},pdf_failed:{reason:'unavailable'},pdf_download_initiated:{destination:'pdf'},cta_clicked:{destination:'booking',position:'content'},booking_confirmed:{destination:'booking'}};
- assert.deepEqual(Object.keys(samples).sort(),Object.keys(EVENT_DIMENSIONS).sort());
- const check=event=>validateBatch({version:1,events:[{id:'00000000-0000-4000-8000-000000000001',...event}]});
+ const samples={page_view:{},calculator_completed:{...profile,score:1450,gpa:9.123,probability:54.5},calculator_failed:{reason:'unavailable'},gpa_calculated:{},gpa_transferred:{destination:'calculator'},report_rendered:{},report_failed:{reason:'unavailable'},pdf_generated:{},pdf_failed:{reason:'unavailable'},pdf_download_initiated:{destination:'pdf'},cta_clicked:{destination:'booking',position:'content'},booking_confirmed:{destination:'booking'}};
+ assert.deepEqual(Object.keys({...samples,page_view:{}}).sort(),Object.keys(EVENT_DIMENSIONS).sort());
+ const check=event=>validateBatch({version:2,events:[{id:'00000000-0000-4000-8000-000000000001',visit_id:'00000000-0000-4000-8000-000000000002',occurred_at:new Date().toISOString(),page:'/',referrer:'',device:'desktop',...event}]});
  for(const [name,dims] of Object.entries(samples)){const event=helpers.cleanEvent(name,dims);assert.ok(event);assert.doesNotThrow(()=>check(event));}
  for(const kind of ['SAT','Bocconi'])for(const score of kind==='SAT'?[400,449,450,1549,1550,1599,1600]:[0,1.999,2,47.999,48,49.999,50])for(const gpa of [0,.249,.25,9.749,9.75,9.999,10]){
   const event=helpers.cleanEvent('calculator_completed',{...profile,test_type:kind,score_band:helpers.scoreBand(kind,score),gpa_band:helpers.gpaBand(gpa)});assert.ok(event);assert.doesNotThrow(()=>check(event));
  }
+});
+
+test('visit metadata is tab-scoped, sanitized, and includes one initial page view',()=>{
+ const b=boot({referrer:'https://example.com/path?email=secret#private',search:'?utm_source=google&utm_medium=cpc&utm_campaign=SAT-2026&email=private',userAgent:'iPhone Mobile'});b.flush();
+ const event=JSON.parse(b.requests[0].init.body).events[0];assert.equal(event.event,'page_view');assert.equal(event.page,'/');assert.equal(event.referrer,'https://example.com/path');assert.equal(event.device,'mobile');assert.equal(event.source,'google');assert.equal(event.campaign,'SAT-2026');assert.ok(Number.isFinite(Date.parse(event.occurred_at)));assert.equal(event.visit_id,b.sessionStorage.get('chanceme.product-visit.v2'));assert.ok(!b.requests[0].init.body.includes('secret'));
+ const c=boot({session:[...b.sessionStorage]});c.flush();assert.equal(JSON.parse(c.requests[0].init.body).events[0].visit_id,event.visit_id);
+ b.button.click();assert.equal(b.sessionStorage.has('chanceme.product-visit.v2'),false);
+ assert.equal(helpers.campaignValue('email@example.com'),undefined);assert.equal(helpers.campaignValue('x'.repeat(81)),undefined);assert.equal(helpers.cleanReferrer('javascript:secret'),'');
+});
+test('exact submitted inputs are permitted only on completed calculations',()=>{
+ assert.ok(helpers.cleanEvent('calculator_completed',{...profile,score:1450,gpa:9.123,probability:54.5}));
+ for(const dims of [{score:Infinity},{gpa:-1},{probability:101}])assert.equal(helpers.cleanEvent('calculator_completed',{...profile,...dims}),null);
+ assert.equal(helpers.cleanEvent('report_rendered',{score:1450}),null);assert.equal(helpers.cleanEvent('page_view',{email:'private@example.com'}),null);
+});
+
+test('blocked session storage falls back to page memory without interrupting usage',()=>{
+ const b=boot({noSession:true});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);b.flush();
+ const events=JSON.parse(b.requests[0].init.body).events;assert.equal(events.length,2);assert.equal(events[0].visit_id,events[1].visit_id);assert.notEqual(events[0].id,events[1].id);assert.equal(b.sessionStorage.size,0);
+});
+
+test('new-tab report continuity uses only an allowed UUID fragment before its first page view',()=>{
+ const carried='12345678-1234-4123-8123-123456789abc';
+ const b=boot({path:'/report/',hash:'#score=1450&gpa=9&visit_id='+carried});assert.equal(b.window.ChanceAnalytics.visitId(),carried);b.flush();
+ const payload=JSON.parse(b.requests[0].init.body);assert.equal(payload.events[0].event,'page_view');assert.equal(payload.events[0].visit_id,carried);assert.equal(payload.events[0].page,'/report/');assert.equal(b.sessionStorage.get('chanceme.product-visit.v2'),carried);
+ assert.equal(b.beforeSend({type:'pageview'}).url,'https://chance-me.com/report/');assert.equal(b.beforeSend({type:'pageview'}).url.includes(carried),false);
+ const ordinary=boot({path:'/',hash:'#visit_id='+carried});assert.notEqual(ordinary.window.ChanceAnalytics.visitId(),carried);
+ const invalid=boot({path:'/report/',hash:'#visit_id=private@example.com'});assert.notEqual(invalid.window.ChanceAnalytics.visitId(),'private@example.com');
+ for(const options of [{off:'1'},{gpc:true},{dnt:true},{host:'preview.vercel.app'}]){const x=boot({...options,path:'/report/',hash:'#visit_id='+carried});assert.equal(x.window.ChanceAnalytics.visitId(),null);assert.equal(x.sessionStorage.size,0);}
 });
