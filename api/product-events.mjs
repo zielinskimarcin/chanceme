@@ -9,7 +9,8 @@ export function makeHandler({ store = redisStore, enabled = () => process.env.VE
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); res.statusCode = 405; return res.end(); }
-    if (!origins.has(req.headers.origin) || req.headers['sec-fetch-site'] !== 'same-origin') { res.statusCode = 403; return res.end(); }
+    // Older browsers can omit Fetch Metadata; the exact Origin allowlist remains mandatory.
+    if (!origins.has(req.headers.origin) || (req.headers['sec-fetch-site'] !== undefined && req.headers['sec-fetch-site'] !== 'same-origin')) { res.statusCode = 403; return res.end(); }
     // No IP, user agent, Referer, request bodies or credentials are logged by the application.
     if (req.headers.dnt === '1' || req.headers['sec-gpc'] === '1' || !enabled()) { res.statusCode = 204; return res.end(); }
     if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) { res.statusCode = 415; return res.end(); }

@@ -72,3 +72,10 @@ test('private report labels absent observations as unknown rather than verified 
 test('provider-managed Vercel KV variable names work without duplicating secrets',async()=>{
  const {configured}=await import('../lib/product-metrics-store.mjs');assert.equal(configured({KV_REST_API_URL:'https://test.upstash.io',KV_REST_API_TOKEN:'secret'}),true);
 });
+
+test('collector supports valid-origin browsers without Fetch Metadata but still rejects cross-origin or missing Origin',async()=>{
+ const {makeHandler}=await import('../api/product-events.mjs');let writes=0;const handler=makeHandler({enabled:()=>true,clock:()=>now.getTime(),store:()=>({read:async()=>null,write:async()=>{writes++;},isConflict:()=>false})});
+ const invoke=async headers=>{const res={setHeader(){},end(){}};await handler({method:'POST',headers:{'content-type':'application/json',...headers},body:batch()},res);return res.statusCode;};
+ assert.equal(await invoke({origin:'https://chance-me.com'}),204);assert.equal(writes,1);
+ assert.equal(await invoke({origin:'https://evil.example'}),403);assert.equal(await invoke({}),403);assert.equal(await invoke({origin:'https://chance-me.com','sec-fetch-site':'cross-site'}),403);assert.equal(writes,1);
+});
