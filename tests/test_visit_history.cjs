@@ -23,3 +23,15 @@ test('history bounds daily detail volume and ignores forged client time for sort
  let out=aggregate(state,validateBatch(payload()),now);assert.equal(out.state.records.length,1000);assert.equal(out.state.days['2026-10-30'].detailCapped,true);
  const body=payload();body.events[0].occurred_at='2000-01-01T00:00:00Z';out=aggregate(freshState(),validateBatch(body),now);assert.equal(out.state.records[0].details.occurred_at,now.toISOString());
 });
+test('expanded exact calculation schema preserves flags/result/platform/UTM and rejects unbounded values',async()=>{
+ const {validateBatch}=await import('../lib/product-metrics.mjs');const body=payload();Object.assign(body.events[0],{browser:'Safari',os:'iOS',timezone:'Europe/Warsaw',utc_offset_minutes:120,cycle:'27-28',applicant_category:'international',gpa_confirmed:true,gpa_estimated:false,content:'banner',term:'bocconi',utm_id:'autumn26',result:{probability:.7234,display_percent:'72%',status:'estimated'}});
+ const d=validateBatch(body)[0].details;assert.equal(d.browser,'Safari');assert.equal(d.cycle,'27-28');assert.equal(d.gpa_estimated,false);assert.equal(d.result.display_percent,'72%');assert.equal(d.utm_id,'autumn26');
+ for(const extra of [{browser:'random-agent-secret'},{os:'unknown system'},{timezone:'invalid/timezone'},{utc_offset_minutes:9999},{result:{probability:2,display_percent:'72%',status:'estimated'}},{gpa_confirmed:'true'},{cycle:'secret'},{result:{probability:.7,display_percent:'70%',status:'estimated',email:'a@b.c'}}]) assert.throws(()=>validateBatch({version:2,events:[{...body.events[0],...extra}]}));
+});
+test('owner summary exposes small counts only with explicit private detail option',async()=>{
+ const {summarize,freshState}=await import('../lib/product-metrics.mjs');const s=freshState();s.days['2026-10-30']={batches:1,events:{calculator_completed:1},distributions:{'calculator_completed:gpa_band':{'9.00-9.24':1}}};
+ assert.equal(summarize(s,{now,privateDetails:true}).distributions['calculator_completed:gpa_band']['9.00-9.24'],1);assert.equal(summarize(s,{now}).distributions['calculator_completed:gpa_band']['9.00-9.24'],undefined);
+});
+test('test source separates all events in a visit including carried report tab',async()=>{
+ const {classifyTraffic}=await import('../lib/product-metrics.mjs');const r=classifyTraffic([{details:{visit_id:'a',source:'owner-qa'}},{event:'report_rendered',details:{visit_id:'a'}},{details:{visit_id:'b',source:'google'}}]);assert.deepEqual(r.map(v=>v.traffic),['test','test','user']);
+});

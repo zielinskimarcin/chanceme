@@ -169,6 +169,10 @@ const ChanceReport = (function () {
         error.replaceChildren(node("span","Couldn’t update the estimate."),button("Try again","text-button",()=>{course.value=target.course;round.value=target.session;load(true);}));return;
       }
       own.input=target;own.course=target.course;own.session=target.session;own.data=d;if(recalculate)showEstimate(d);
+      if(recalculate){
+        const analytics=window.ChanceAnalytics,score_band=analytics?.scoreBand?.(target.test_type,target.score),gpa_band=analytics?.gpaBand?.(target.gpa);
+        analytics?.track('calculator_completed',{test_type:target.test_type,program:target.course,round:target.session,status:d.status,score:target.score,gpa:target.gpa,gpa_estimated:target.gpa_estimated===true,gpa_confirmed:target.gpa_confirmed===true,cycle:target.cycle,applicant_category:target.applicant_category,probability:d.probability*100,result_band:d.probability<.35?'lower':d.probability<.65?'balanced':'stronger',result:{probability:d.probability,display_percent:d.display_percent,status:d.status},...(score_band?{score_band}:{}),...(gpa_band?{gpa_band}:{})});
+      }
       if(recalculate){if(byId("course"))byId("course").value=target.course;if(byId("session"))byId("session").value=target.session;renderResult(d,target,{skipEvidence:true});}
       const reports=comparison.status==="fulfilled"?comparison.value:null;
       if(!reports||reports.status!=="ok"||!Array.isArray(reports.records)){
