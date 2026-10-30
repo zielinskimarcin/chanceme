@@ -45,4 +45,8 @@ test('history date/country/action filters and order drive the actual visible row
  assert.equal(byId('history-rows').children.length,1);assert.equal(byId('history-rows').children[0].children[1].textContent,'b');
  byId('history-from').value='';byId('history-sort').value='asc';byId('history-sort').listeners.input();
  assert.equal(byId('history-rows').children[0].children[1].textContent,'a');
+ const restoredIds=new Map();const restored=id=>{if(!restoredIds.has(id))restoredIds.set(id,new Element());return restoredIds.get(id)};restored('history-data').textContent=JSON.stringify(records);let savedHash='';
+ vm.runInNewContext(script,{document:{getElementById:restored,createElement:()=>new Element()},URLSearchParams,location:{hash:'#country=PL&event=calculator_completed&sort=asc'},history:{replaceState:(state,title,url)=>{savedHash=url}}});
+ assert.equal(restored('history-country').value,'PL');assert.equal(restored('history-event').value,'calculator_completed');assert.equal(restored('history-rows').children.length,1);
+ restored('history-visit').value='a';restored('history-visit').listeners.input();const hashParams=new URLSearchParams(savedHash.slice(1));assert.equal(hashParams.get('visit'),'a');assert.equal(hashParams.get('country'),'PL');assert.ok(!savedHash.includes('1520'));assert.ok(!savedHash.includes('9.32'));
 });
