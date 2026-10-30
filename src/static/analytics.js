@@ -1,4 +1,4 @@
-/* Cookieless page views and bounded first-party aggregate product events. */
+/* Cookieless page views and bounded first-party product usage events. */
 (function(root){
  'use strict';
  const paths=new Set(['/','/bocconi-gpa-calculator/','/sat-tutoring/','/bocconi-sat-score/','/bocconi-test-score/','/report/','/privacy/','/gpa-school-sources/']);
@@ -6,7 +6,7 @@
  function cleanPath(path){return paths.has(path)?path:'/404/';}
  function cleanDimensions(input){const out={};for(const [key,allowed] of Object.entries(dimensions))if(allowed.includes(input?.[key]))out[key]=input[key];return out;}
  function safeLocation(location){return location.origin+cleanPath(location.pathname);}
- const eventDimensions={calculator_completed:['test_type','program','round','status','result_band','score_band','gpa_band'],calculator_failed:['reason'],gpa_calculated:[],gpa_transferred:['destination'],report_rendered:[],report_failed:['reason'],pdf_generated:[],pdf_failed:['reason'],pdf_download_initiated:['destination'],cta_clicked:['destination','position'],booking_confirmed:['destination']};
+ const eventDimensions={page_view:[],calculator_completed:['test_type','program','round','status','result_band','score_band','gpa_band','score','gpa','probability'],calculator_failed:['reason'],gpa_calculated:[],gpa_transferred:['destination'],report_rendered:[],report_failed:['reason'],pdf_generated:[],pdf_failed:['reason'],pdf_download_initiated:['destination'],cta_clicked:['destination','position'],booking_confirmed:['destination']};
  function scoreBand(kind,value){
   if(typeof value!=='number'||!Number.isFinite(value))return undefined;
   if(kind==='SAT'){if(value<400||value>1600)return undefined;return value>=1550?'1550-1600':Math.floor(value/50)*50+'-'+(Math.floor(value/50)*50+49);}
@@ -19,23 +19,26 @@
  function cleanEvent(name,input={}){
   if(!Object.prototype.hasOwnProperty.call(eventDimensions,name))return null;
   const keys=eventDimensions[name];if(!input||typeof input!=='object'||Array.isArray(input))return null;
-  // Unknown fields reject the whole event, rather than risk accidental raw-profile collection.
+  // Unknown fields reject the whole event; only the approved event schema is transmitted.
   if(Object.keys(input).some(key=>!keys.includes(key)))return null;
   const output={};
   for(const key of Object.keys(input)){
    const value=input[key];
-   const valid=key==='score_band'?(input.test_type==='SAT'?satBands:input.test_type==='Bocconi'?btBands:new Set()).has(value):key==='gpa_band'?gpaBands.has(value):dimensions[key]?.includes(value);
+   const valid=['score','gpa','probability'].includes(key)?typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=({score:1600,gpa:10,probability:100}[key]):key==='score_band'?(input.test_type==='SAT'?satBands:input.test_type==='Bocconi'?btBands:new Set()).has(value):key==='gpa_band'?gpaBands.has(value):dimensions[key]?.includes(value);
    if(!valid)return null;output[key]=value;
   }
   if(name==='calculator_completed'&&!['test_type','program','round','status'].every(key=>key in output))return null;
   return {event:name,...output};
  }
- const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent};
+ function cleanReferrer(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?(u.origin+u.pathname).slice(0,300):'';}catch{return '';}}
+ function campaignValue(value){return typeof value==='string'&&/^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:undefined;}
+ const helpers={cleanDimensions,cleanPath,safeLocation,scoreBand,gpaBand,cleanEvent,cleanReferrer,campaignValue};
  if(typeof module==='object'&&module.exports){module.exports=helpers;return;}
  if(!root.document)return;
  const doc=root.document,KEY='chance-anonymous-stats-off-v1',LEGACY='chance-consent-v1';
  const production=['chance-me.com','www.chance-me.com'].includes(root.location.hostname);
- let optedOut=false,loaded=false,events=[],timer=null,inflight=false;
+ let optedOut=false,loaded=false,events=[],timer=null,inflight=false,visitId=null;
+ const VISIT_KEY='chanceme.product-visit.v2';
  const blocked=()=>root.navigator.globalPrivacyControl===true||root.navigator.doNotTrack==='1'||root.doNotTrack==='1';
  const allowed=()=>production&&!optedOut&&!blocked();
  try{
@@ -73,18 +76,19 @@
   root.va('beforeSend',beforeSend);
   const script=doc.createElement('script');script.src='/_vercel/insights/script.js';script.async=true;
   doc.head.appendChild(script);
+  track('page_view');
  }
  function renderSettings(){
-  const message=!production?'Statistics are disabled in this preview.':blocked()?'Your browser’s privacy signal disables statistics.':optedOut?'Anonymous visit statistics are off in this browser.':'Anonymous visit statistics are on in this browser.';
+  const message=!production?'Statistics are disabled in this preview.':blocked()?'Your browser’s privacy signal disables statistics.':optedOut?'Visit and product statistics are off in this browser.':'Visit and product statistics are on in this browser.';
   doc.querySelectorAll('[data-analytics-status]').forEach(node=>{node.textContent=message;});
   doc.querySelectorAll('[data-analytics-toggle]').forEach(button=>{
    button.hidden=false;button.disabled=!production||blocked();
-   button.textContent=optedOut?'Enable anonymous statistics':'Turn off anonymous statistics';
+   button.textContent=optedOut?'Enable statistics':'Turn off statistics';
   });
  }
  function setOptOut(value){
   optedOut=value;
-  if(value)clearEvents();
+  if(value){clearEvents();visitId=null;try{root.sessionStorage.removeItem(VISIT_KEY);}catch{}}
   try{root.localStorage.setItem(KEY,value?'1':'0');}catch{}
   renderSettings();
   if(!value)start();
@@ -98,18 +102,26 @@
   if(!allowed()){clearEvents();return;}
   if(inflight||!events.length)return;
   const batch=events;events=[];
-  const body=JSON.stringify({version:1,events:batch});
+  const body=JSON.stringify({version:2,events:batch});
   if(body.length>8192)return;
   inflight=true;
-  // Single attempt: no replay queue, identifiers on disk, or background retry storm.
+  // Single attempt; never replay failed batches or block the calculator.
   try{Promise.resolve(root.fetch('/api/product-events',{method:'POST',headers:{'Content-Type':'application/json'},body,credentials:'omit',referrerPolicy:'no-referrer',keepalive:true})).catch(()=>{}).finally(()=>{inflight=false;if(allowed())schedule();else clearEvents();});}catch{inflight=false;}
  }
  function track(name,input){
   try{
    if(!allowed()){clearEvents();return false;}
    const event=cleanEvent(name,input);if(!event||events.length>=16||!root.crypto?.randomUUID)return false;
-   const item={id:root.crypto.randomUUID(),...event};
-   if(JSON.stringify({version:1,events:events.concat(item)}).length>8192)return false;
+   if(!visitId){
+    try{const stored=root.sessionStorage.getItem(VISIT_KEY);if(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored))visitId=stored;}catch{}
+    if(!visitId){visitId=root.crypto.randomUUID();try{root.sessionStorage.setItem(VISIT_KEY,visitId);}catch{}}
+   }
+   const ua=root.navigator.userAgent||'';
+   const device=/iPad|Tablet|Android(?!.*Mobile)/i.test(ua)?'tablet':/Mobi|iPhone|Android/i.test(ua)?'mobile':'desktop';
+   const params=new URLSearchParams(root.location.search||''),campaign={};
+   for(const [key,param] of [['source','utm_source'],['medium','utm_medium'],['campaign','utm_campaign']]){const value=campaignValue(params.get(param));if(value)campaign[key]=value;}
+   const item={id:root.crypto.randomUUID(),...event,visit_id:visitId,occurred_at:new Date().toISOString(),page:cleanPath(root.location.pathname),referrer:cleanReferrer(doc.referrer),device,...campaign};
+   if(JSON.stringify({version:2,events:events.concat(item)}).length>8192)return false;
    events.push(item);schedule();if(events.length===16)flush();return true;
   }catch{return false;}
  }

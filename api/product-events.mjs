@@ -1,4 +1,4 @@
-import { validateBatch, collect, MAX_BODY } from '../lib/product-metrics.mjs';
+import { validateBatch, collect, MAX_BODY, requestGeography } from '../lib/product-metrics.mjs';
 import { redisStore, configured } from '../lib/product-metrics-store.mjs';
 
 const origins = new Set(['https://chance-me.com', 'https://www.chance-me.com']);
@@ -28,7 +28,7 @@ export function makeHandler({ store = redisStore, enabled = () => process.env.VE
       if (Buffer.byteLength(body) > MAX_BODY) { res.statusCode = 413; return res.end(); }
       let events;
       try { events = validateBatch(JSON.parse(body)); } catch { res.statusCode = 400; return res.end(); }
-      const update = await collect(store(), events, { now: new Date(now) });
+      const update = await collect(store(), events, { now: new Date(now), geography: requestGeography(req.headers) });
       if (update.capped) pausedUntil = Date.parse(new Date(now).toISOString().slice(0,10)+'T00:00:00Z')+86400000;
       res.statusCode = 204; return res.end();
     } catch {

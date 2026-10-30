@@ -29,8 +29,8 @@ Test the complete application over HTTP. Never serve the repository root or depl
 ## Data and privacy rules
 
 - Never commit credentials, exports containing personal identifiers, raw analytics exports, or production tokens.
-- Do not send raw SAT, Bocconi Test, GPA, email, or free-text application data to analytics.
-- Analytics events may contain only coarse product dimensions such as test type, program, session, result band, and CTA type.
+- Owner scope update 2026-10-29: the private first-party product collector may retain explicitly submitted SAT/Bocconi Test score and GPA, program/round, tab visit ID, event time, path, sanitized source and approximate network country/region/city for 30 days. Keep 90-day coarse aggregates backward compatible.
+- Never send names, emails, free text, raw IP addresses or credentials to the collector. Detailed history is owner-only, never a public API or committed export.
 - Document the source date and methodology before adding or changing historical records.
 - Never present the output as a guarantee of admission or as an official Bocconi result.
 
@@ -47,6 +47,6 @@ Test the complete application over HTTP. Never serve the repository root or depl
 
 - Tests pass locally and in CI.
 - Invalid API input returns a controlled 4xx response.
-- No secrets or personal data enter Git history or analytics.
+- No secrets or visitor records enter Git history; telemetry follows the explicit owner scope and private access above.
 - User-visible claims have a source or are clearly labeled as estimates.
 - SEO releases include a before/after annotation and a rollback path.
