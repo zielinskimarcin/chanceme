@@ -7,9 +7,16 @@
     "api/index.py": {
       "excludeFiles": "{tests/**,qa/**,docs/**,src/**,scripts/**,node_modules/**,.venv/**,.git/**,dist/**,public/**,**/__pycache__/**,api/*.csv}",
       "maxDuration": 30
+    },
+    "api/product-events.mjs": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
+    {
+      "source": "/api/product-events",
+      "destination": "/api/product-events.mjs"
+    },
     {
       "source": "/api/:path*",
       "destination": "/api/index.py"

@@ -1,15 +1,15 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('src/static/analytics.js','utf8');
 const helpers=require('../src/static/analytics.js');
-function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies=''}={}){
- const scripts=[],queue=[],writes=[],cookieWrites=[],status={textContent:''};
+function boot({host='chance-me.com',path='/',gpc=false,dnt=false,legacy=null,legacyRaw=null,off=null,referrer='',cookies='',fetcher=()=>Promise.resolve({ok:true})}={}){
+ const scripts=[],queue=[],writes=[],cookieWrites=[],requests=[],timers=new Map(),listeners={},documentListeners={},status={textContent:''};let timerId=0,eventId=0;
  const button={hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{button.click=fn;}};
  const storage=new Map([['__va_attribution','{"userId":"old-private-id"}']]);if(legacyRaw!==null)storage.set('chance-consent-v1',legacyRaw);if(legacy!==null)storage.set('chance-consent-v1',JSON.stringify({analytics:legacy,expires:Date.now()+60000}));if(off!==null)storage.set('chance-anonymous-stats-off-v1',off);
- const document={referrer,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
+ const document={referrer,addEventListener:(name,fn)=>documentListeners[name]=fn,head:{appendChild:s=>scripts.push(s.src)},createElement:type=>{assert.equal(type,'script','measurement must not create a banner');return{};},querySelectorAll:selector=>selector==='[data-analytics-toggle]'?[button]:selector==='[data-analytics-status]'?[status]:[]};
  Object.defineProperty(document,'cookie',{get:()=>cookies,set:v=>cookieWrites.push(v)});
- const window={document,navigator:{globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search:'?score=1450',hash:'#gpa=9',reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
+ const window={document,setTimeout:fn=>{const id=++timerId;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id),addEventListener:(name,fn)=>listeners[name]=fn,crypto:{randomUUID:()=>('00000000-0000-4000-8000-'+String(++eventId).padStart(12,'0'))},fetch:(url,init)=>{requests.push({url,init});return fetcher(url,init);},navigator:{globalPrivacyControl:gpc,doNotTrack:dnt?'1':'0'},location:{hostname:host,origin:'https://'+host,pathname:path,search:'?score=1450',hash:'#gpa=9',reload:()=>{window.reloaded=true;},assign:()=>{}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push([key,value]);storage.set(key,value);},removeItem:key=>storage.delete(key)},va:function(){queue.push([...arguments]);}};
  vm.runInNewContext(source,{window,Date,Set,JSON,Object,URL});
- return{scripts,queue,writes,cookieWrites,window,button,status,storage,beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
+ return{scripts,queue,writes,cookieWrites,requests,timers,listeners,documentListeners,window,button,status,storage,flush:()=>listeners.pagehide(),beforeSend:queue.find(e=>e[0]==='beforeSend')?.[1]};
 }
 test('sanitizers drop scores, grades, report fragments and arbitrary values',()=>{
  assert.deepEqual(helpers.cleanDimensions({score:1450,gpa:9,email:'private@example.com',round:'Winter',program:'Management',destination:'/report/#gpa=9'}),{program:'Management',round:'Winter'});
@@ -50,3 +50,55 @@ test('compatibility hooks do not send paid custom events or raw calculator input
 });
 
 test('malformed legacy preferences cannot preserve optional identity data',()=>{const b=boot({legacyRaw:'{broken'});assert.equal(b.storage.has('__va_attribution'),false);assert.equal(b.storage.has('chance-consent-v1'),false);});
+
+const profile={test_type:'SAT',program:'Finance',round:'Early',status:'estimated',result_band:'balanced',score_band:'1450-1499',gpa_band:'9.00-9.24'};
+test('bands are coarse at boundaries and invalid inputs cannot become dimensions',()=>{
+ assert.equal(helpers.scoreBand('SAT',1499),'1450-1499');assert.equal(helpers.scoreBand('SAT',1600),'1550-1600');assert.equal(helpers.scoreBand('SAT',399),undefined);
+ assert.equal(helpers.scoreBand('Bocconi',33.999),'32-33.99');assert.equal(helpers.scoreBand('Bocconi',50),'48-50');assert.equal(helpers.gpaBand(9.249),'9.00-9.24');assert.equal(helpers.gpaBand(10),'9.75-10.00');assert.equal(helpers.gpaBand('9'),undefined);
+ for(const extra of [{score:1450},{gpa:9},{email:'x@y.com'},{url:'/report/#score=1450'},{score_band:'1450'},{gpa_band:'9'},{test_type:'Bocconi',score_band:'1450-1499'}])assert.equal(helpers.cleanEvent('calculator_completed',{...profile,...extra}),null);
+ assert.equal(helpers.cleanEvent('arbitrary',{}),null);assert.equal(helpers.cleanEvent('cta_clicked',{score_band:'1450-1499'}),null);
+});
+test('events are batched with independent short lived UUIDs and never paid Vercel events',async()=>{
+ const b=boot();assert.equal(b.window.ChanceAnalytics.track('calculator_completed',profile),true);assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);
+ assert.equal(b.requests.length,0);assert.equal(b.timers.size,1);b.flush();await Promise.resolve();
+ assert.equal(b.requests.length,1);const request=b.requests[0],body=JSON.parse(request.init.body);assert.equal(request.url,'/api/product-events');assert.equal(request.init.credentials,'omit');assert.equal(request.init.referrerPolicy,'no-referrer');assert.equal(request.init.keepalive,true);
+ assert.equal(body.version,1);assert.equal(body.events.length,2);assert.notEqual(body.events[0].id,body.events[1].id);assert.equal(body.events[0].score_band,'1450-1499');assert.equal(b.queue.length,1);assert.deepEqual(b.writes,[]);assert.deepEqual(b.cookieWrites,[]);
+});
+test('a full batch flushes once, repeated lifecycle flush does not replay IDs',async()=>{
+ const b=boot();for(let i=0;i<16;i++)assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);assert.equal(b.requests.length,1);b.flush();b.flush();assert.equal(b.requests.length,1);assert.equal(JSON.parse(b.requests[0].init.body).events.length,16);assert.ok(b.requests[0].init.body.length<=8192);
+});
+test('failed requests are discarded without retries or blocking user actions',async()=>{
+ const b=boot({fetcher:()=>Promise.reject(new Error('offline'))});assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);b.flush();await new Promise(setImmediate);assert.equal(b.requests.length,1);assert.equal(b.timers.size,0);b.flush();assert.equal(b.requests.length,1);
+ const c=boot({fetcher:()=>{throw new Error('sync failure');}});assert.doesNotThrow(()=>{c.window.ChanceAnalytics.track('gpa_calculated');c.flush();});
+});
+test('slow requests leave a bounded queue without concurrent sends or retries',async()=>{
+ const b=boot({fetcher:()=>new Promise(()=>{})});b.window.ChanceAnalytics.track('gpa_calculated');b.flush();for(let i=0;i<16;i++)assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),true);assert.equal(b.window.ChanceAnalytics.track('gpa_calculated'),false);assert.equal(b.requests.length,1);
+});
+test('privacy withdrawal clears queued events and timers, including live browser signals',()=>{
+ const b=boot();b.window.ChanceAnalytics.track('gpa_calculated');b.button.click();assert.equal(b.timers.size,0);b.flush();assert.equal(b.requests.length,0);
+ const c=boot();c.window.ChanceAnalytics.track('gpa_calculated');c.window.navigator.globalPrivacyControl=true;c.flush();assert.equal(c.requests.length,0);assert.equal(c.timers.size,0);
+ for(const options of [{off:'1'},{host:'preview.vercel.app'},{dnt:true},{gpc:true}]){const x=boot(options);assert.equal(x.window.ChanceAnalytics.track('gpa_calculated'),false);x.flush();assert.equal(x.requests.length,0);}
+});
+test('hidden pages flush and raw query/hash never enter an event payload',()=>{
+ const b=boot();b.window.ChanceAnalytics.track('calculator_completed',profile);b.window.document.visibilityState='hidden';b.documentListeners.visibilitychange();assert.equal(b.requests.length,1);assert.equal(b.requests[0].init.body.includes('#gpa'),false);assert.equal(b.requests[0].init.body.includes('?score'),false);
+});
+
+test('PDF generated and failed events accept only their fixed coarse schema',()=>{
+ assert.deepEqual(helpers.cleanEvent('pdf_generated',{}),{event:'pdf_generated'});assert.deepEqual(helpers.cleanEvent('pdf_failed',{reason:'unavailable'}),{event:'pdf_failed',reason:'unavailable'});
+ assert.equal(helpers.cleanEvent('pdf_generated',{filename:'private.pdf'}),null);assert.equal(helpers.cleanEvent('pdf_failed',{reason:'raw server exception'}),null);
+});
+
+test('maximum scores share a broad band with nearby values and singleton bands are rejected',()=>{
+ assert.equal(helpers.scoreBand('SAT',1550),helpers.scoreBand('SAT',1600));assert.equal(helpers.scoreBand('Bocconi',48),helpers.scoreBand('Bocconi',50));assert.equal(helpers.gpaBand(9.75),helpers.gpaBand(10));
+ for(const extra of [{score_band:'1600'},{test_type:'Bocconi',score_band:'50'},{gpa_band:'10'}])assert.equal(helpers.cleanEvent('calculator_completed',{...profile,...extra}),null);
+});
+test('frontend events and band boundaries conform to the actual server validator',async()=>{
+ const {validateBatch,EVENT_DIMENSIONS}=await import('../lib/product-metrics.mjs');
+ const samples={calculator_completed:profile,calculator_failed:{reason:'unavailable'},gpa_calculated:{},gpa_transferred:{destination:'calculator'},report_rendered:{},report_failed:{reason:'unavailable'},pdf_generated:{},pdf_failed:{reason:'unavailable'},pdf_download_initiated:{destination:'pdf'},cta_clicked:{destination:'booking',position:'content'},booking_confirmed:{destination:'booking'}};
+ assert.deepEqual(Object.keys(samples).sort(),Object.keys(EVENT_DIMENSIONS).sort());
+ const check=event=>validateBatch({version:1,events:[{id:'00000000-0000-4000-8000-000000000001',...event}]});
+ for(const [name,dims] of Object.entries(samples)){const event=helpers.cleanEvent(name,dims);assert.ok(event);assert.doesNotThrow(()=>check(event));}
+ for(const kind of ['SAT','Bocconi'])for(const score of kind==='SAT'?[400,449,450,1549,1550,1599,1600]:[0,1.999,2,47.999,48,49.999,50])for(const gpa of [0,.249,.25,9.749,9.75,9.999,10]){
+  const event=helpers.cleanEvent('calculator_completed',{...profile,test_type:kind,score_band:helpers.scoreBand(kind,score),gpa_band:helpers.gpaBand(gpa)});assert.ok(event);assert.doesNotThrow(()=>check(event));
+ }
+});

@@ -87,7 +87,7 @@ test('reset makes pending filter responses unable to repaint a stale result',asy
  pending[0](ok(comparison()));pending[1](ok(comparison()));pending[2](ok(estimate(54)));await next;await tick();assert.equal(x.results.length,0);assert.equal(x.ids.evidence.hidden,true);assert.equal(x.ids.calculator.hidden,false);
 });
 test('PDF export sends the current recalculated profile and comparison filters',async()=>{
- const x=setup(async(url)=>url==='/api/report.pdf'?{ok:true,blob:async()=>new Blob(['pdf'])}:ok(url==='/api/estimate'?estimate(54):comparison()));
+ const x=setup(async(url)=>url==='/api/report.pdf'?{ok:true,blob:async()=>new Blob(['%PDF-1.7'],{type:'application/pdf'})}:ok(url==='/api/estimate'?estimate(54):comparison()));
  x.api.render(estimate(),profile);await tick();await selected(x,'report-course','Finance');await selected(x,'report-round','Early');await selected(x,'evidence-cycle','26-27');
  await find(x,e=>e.className==='text-button report-pdf').listeners.click();const body=JSON.parse(x.calls.at(-1).init.body);assert.equal(body.profile.course,'Finance');assert.equal(body.profile.session,'Early');assert.equal(body.filters.cycle,'26-27');
 });
@@ -147,4 +147,29 @@ test('separate full report restores the full dataset, ring, zoom, pan and expand
 test('full-report filters recalculate its ring and update the reloadable URL',async()=>{
  const x=setup(async(url)=>ok(url==='/api/estimate'?estimate(54):comparison()),true);x.api.render(estimate(),profile,{cycle:'26-27'});await tick();await selected(x,'report-course','Finance');await selected(x,'report-round','Early');
  assert.match(mini(x).textContent,/54%/);assert.match(find(x,e=>e.className==='report-profile-terms').textContent,/FinanceRoundEarly/);const params=new URLSearchParams(x.scope.lastURL.split('#')[1]);assert.equal(params.get('course'),'Finance');assert.equal(params.get('session'),'Early');assert.equal(params.get('year'),'26-27');
+});
+
+test('full report counts only populated comparison once and PDF only after response blob exists',async()=>{
+ const events=[],x=setup(async url=>url==='/api/report.pdf'?{ok:true,blob:async()=>new Blob(['%PDF-1.7'],{type:'application/pdf'})}:ok(url==='/api/estimate'?estimate():comparison()),true);
+ x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};
+ x.api.render(estimate(),profile);assert.equal(events.length,0);await tick();assert.equal(JSON.stringify(events),JSON.stringify([['report_rendered']]));
+ await selected(x,'report-course','Finance');assert.equal(events.filter(e=>e[0]==='report_rendered').length,1);
+ await find(x,e=>e.className==='report-download').listeners.click();assert.equal(events.at(-2)[0],'pdf_generated');assert.equal(events.at(-1)[0],'pdf_download_initiated');assert.equal(JSON.stringify(events.at(-1)[1]),JSON.stringify({destination:'pdf'}));
+});
+test('failed report comparison or PDF never emits successful render or download',async()=>{
+ const events=[],x=setup(async()=>{throw new Error('offline');},true);x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};
+ x.api.render(estimate(),profile);await tick();assert.equal(JSON.stringify(events),JSON.stringify([['report_failed',{reason:'unavailable'}]]));
+ await find(x,e=>e.className==='report-download').listeners.click();assert.equal(events.some(e=>e[0]==='pdf_download_initiated'),false);
+ const y=setup();y.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};y.api.render(estimate(),profile);await tick();assert.equal(events.some(e=>e[0]==='report_rendered'),false);
+});
+
+test('PDF events require a nonempty PDF response and ignore request cancellation',async()=>{
+ for(const blob of [new Blob([],{type:'application/pdf'}),new Blob(['error'],{type:'text/html'}),new Blob(['pdf'])]){
+  const events=[],x=setup(async url=>url==='/api/report.pdf'?{ok:true,blob:async()=>blob}:ok(comparison()),true);
+  x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};x.api.render(estimate(),profile);await tick();events.length=0;
+  await find(x,e=>e.className==='report-download').listeners.click();assert.equal(JSON.stringify(events),JSON.stringify([['pdf_failed',{reason:'unavailable'}]]));
+ }
+ const events=[],x=setup(async url=>{if(url==='/api/report.pdf'){const error=new Error('cancelled');error.name='AbortError';throw error;}return ok(comparison());},true);
+ x.scope.window.ChanceAnalytics={track:(...args)=>events.push(args)};x.api.render(estimate(),profile);await tick();events.length=0;
+ await find(x,e=>e.className==='report-download').listeners.click();assert.equal(events.length,0);
 });
