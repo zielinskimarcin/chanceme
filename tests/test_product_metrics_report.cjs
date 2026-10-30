@@ -55,7 +55,7 @@ test('QA separation, inferred visit source, full inputs and filtered formula-saf
  const {summarize,freshState}=await import('../lib/product-metrics.mjs');
  const records=[
  {event:'page_view',traffic:'user',details:{visit_id:'visitor',source:'google',page:'/calculator',occurred_at:'2026-10-29T12:00:00Z'}},
- {event:'calculator_completed',traffic:'user',dimensions:{program:'=HYPERLINK("evil")',test_type:'SAT',round:'Winter'},details:{visit_id:'visitor',score:1510,gpa:9.4,cycle:'2027',applicant_category:'International',gpa_confirmed:true,gpa_estimated:false,inputs:{grades:[9,10]},result:{probability:0.72,status:'ok'},browser:'Firefox',os:'Windows',timezone:'Europe/Warsaw',occurred_at:'2026-10-29T12:01:00Z'}},
+ {event:'calculator_completed',traffic:'user',dimensions:{program:'=HYPERLINK("evil")',test_type:'SAT',round:'Winter'},details:{visit_id:'visitor',score:1510,gpa:9.4,cycle:'2027',applicant_category:'International',gpa_confirmed:true,gpa_estimated:false,inputs:{grades:[9,10]},result:{probability:0.72,status:'ok'},browser:'Firefox',os:'Windows',timezone:'Europe/Warsaw',utc_offset_minutes:120,content:'sidebar',term:'admissions',utm_id:'autumn26',occurred_at:'2026-10-29T12:01:00Z'}},
  {event:'calculator_completed',traffic:'test',details:{visit_id:'qa_1',source:'owner-qa',score:1600,occurred_at:'2026-10-29T13:00:00Z'}},
  ];
  const html=renderReport(summarize(freshState(),{now}),{records,now});
@@ -67,6 +67,6 @@ test('QA separation, inferred visit source, full inputs and filtered formula-saf
  get('history-source').value='google';get('history-source').listeners.input();assert.equal(get('history-rows').children.length,2);
  const row=get('history-rows').children[0];assert.ok(row.children[3].textContent.includes('1510'));assert.ok(row.children[3].textContent.includes('grades'));assert.ok(row.children[3].textContent.includes('International'));assert.ok(row.children[5].textContent.includes('Firefox'));assert.ok(row.children[5].textContent.includes('Europe/Warsaw'));
  assert.equal(get('history-visits').children[0].open,true);assert.ok(get('history-visits').children[0].children.some(n=>n.className==='visit-preview'&&n.textContent.includes('1510')));
- get('history-export').listeners.click();const csv=await exported.text();assert.ok(csv.includes("'=HYPERLINK"));assert.ok(csv.includes('1510'));assert.ok(!csv.includes('1600'));assert.ok(csv.includes('google'));assert.ok(csv.includes('gpa_confirmed'));
+ get('history-export').listeners.click();const csv=await exported.text();assert.ok(csv.includes("'=HYPERLINK"));assert.ok(csv.includes('1510'));assert.ok(!csv.includes('1600'));assert.ok(csv.includes('google'));assert.ok(csv.includes('gpa_confirmed'));assert.ok(csv.includes('utc_offset_minutes'));assert.ok(csv.includes('sidebar'));assert.ok(csv.includes('admissions'));assert.ok(csv.includes('autumn26'));
  get('history-source').value='';get('history-traffic').value='test';get('history-traffic').listeners.input();assert.equal(get('history-rows').children.length,1);assert.ok(get('history-rows').children[0].children[3].textContent.includes('1600'));
 });
