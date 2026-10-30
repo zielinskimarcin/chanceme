@@ -69,3 +69,6 @@ test('collector returns generic error without sensitive data when storage fails'
 test('private report labels absent observations as unknown rather than verified zero traffic',async()=>{
  const {renderReport}=await import('../scripts/product-metrics-report.mjs');const {summarize,freshState}=await api;const html=renderReport(summarize(freshState(),{now}));assert.ok(html.includes('No observations are available'));assert.ok(html.includes('collection health is unknown'));assert.ok(html.includes('0 day(s) with recorded observations'));assert.ok(!html.includes('private-hash'));
 });
+test('provider-managed Vercel KV variable names work without duplicating secrets',async()=>{
+ const {configured}=await import('../lib/product-metrics-store.mjs');assert.equal(configured({KV_REST_API_URL:'https://test.upstash.io',KV_REST_API_TOKEN:'secret'}),true);
+});

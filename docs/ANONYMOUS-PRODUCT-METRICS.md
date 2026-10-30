@@ -1,12 +1,12 @@
 # Anonymous product metrics on Vercel Hobby
 
-Prepared 2026-10-29. Implementation is staged; activation requires the dedicated Upstash Free connection and protected preview QA. No new account, integration, credential, paid plan or production setting has been created by this change.
+Prepared 2026-10-29. Owner explicitly authorized connection and completed Upstash terms acceptance. The dedicated Chance Me database is now connected and actual storage QA has passed; production activation follows the reviewed release workflow.
 
 ## Purpose and design
 
 The owner requested useful action and score-distribution statistics without a popup. Keep existing Vercel Web Analytics for pageviews/visitors/referrers. Its Hobby plan does not include custom events. A separate first-party Node function accepts small allowlisted batches after successful UI actions and writes independent daily counters to a private Redis database. This is our own report, not a paid Vercel Analytics feature. The Flask estimate/model/PDF API is unchanged and never waits for telemetry.
 
-The proposed storage is a **dedicated Chance Me Upstash Redis Free database** in an EU region, connected only to this Vercel project. The published provider offer is $0,256MB,500K commands/month; verify the actual Marketplace plan before provisioning. Do not use a trial, pay-as-you-go fallback or an unrelated application's database. Install no third-party browser SDK; the server uses native fetch to the Redis REST API. Secrets stay in the Vercel secret store, never the browser, logs, Git, generated report, or commands printed to the user.
+The storage is a **dedicated Chance Me Upstash Redis Free database** in an EU region, connected only to this Vercel project. The published provider offer is $0,256MB,500K commands/month; verify the actual Marketplace plan before provisioning. Do not use a trial, pay-as-you-go fallback or an unrelated application's database. Install no third-party browser SDK; the server uses native fetch to the Redis REST API. Secrets stay in the Vercel secret store, never the browser, logs, Git, generated report, or commands printed to the user.
 
 ## Measured actions
 
@@ -63,7 +63,7 @@ With --demo the same command generates clearly labelled synthetic data and needs
 ## Activation and rollback
 
 1. Run tests, production/preview build gates, actual protected-preview route/browser checks, payload and failure QA. Review local baseline performance and unchanged API hashes.
-2. Final approval must name the new Upstash Free database/integration and its two server-only variables UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN. This standing GitHub/Vercel permission explicitly excludes new integrations and environment/secret changes. No broad OAuth access is required or authorized. Abort if Free is unavailable or binding terms need a user handoff.
-3. Connect only the dedicated project, verify Free/no paid fallback, test actual Redis expiry/concurrency using synthetic data without copying credentials. Preview collection remains disabled in production code; use a separate local adapter test against the dedicated preview-only database if approved. Do not send synthetic rows into production counts.
+2. Owner approval and terms acceptance completed2026-10-29. Resource chance-me-product-metrics/store_KiQ9jvx2HSgfW8sW, only project prj_WyyUR0Bo7neO1RgkMZXpuLaGwDfD, production+development. Provider-managed KV_REST_API_URL/KV_REST_API_TOKEN are read server-side (UPSTASH_REDIS_REST_* also supported); no duplicate secrets or env pull file. Free500Kcommands/month, primaryRegionfra1, autoUpgradefalse, prodPackfalse, evictionfalse verified via service metadata. No paid fallback.
+3. Actual Redis QA passed through official vercel env run in development, no secrets printed or saved: duplicate replay counts once, concurrent updates preserve all3unique actions, aggregate TTL<=90days, dedupTTL<=48h, suppressed small bins. Verification script uses isolated chanceme:qa namespace and expires only its own synthetic keys after60seconds. Production counter keys were untouched. Preview collection remains disabled.
 4. Merge only after required CI/preview checks pass; rebuild production (preview HTML is noindex). Verify real action delivery without retaining exact inputs. Mark any controlled own QA clearly and do not call it a customer. Check private report can read and unauthenticated access cannot.
 5. Rollback baseline: production dpl_GxZ5FSSU7XCxook18iAGL31pjefx, main9a4a62d36a497071c01c04f918ec5a0f72680a44. Revert this release and redeploy/rollback within the same team. Calculator, model and Vercel pageviews remain on their previous implementation. Removing/rotating the newly approved metrics credentials disables ingestion without affecting the Python API. Do not delete stored data or disconnect unrelated resources during rollback.
