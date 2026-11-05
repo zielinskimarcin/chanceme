@@ -40,11 +40,26 @@ def options():
 @app.post('/api/estimate')
 def estimate():
     try:
-        return jsonify(engine.evaluate(request.get_json(silent=True)))
+        payload = request.get_json(silent=True)
+        result = engine.evaluate(payload)
+        # The frozen model is unchanged; restrict individual data at the API boundary.
+        if isinstance(result.get('evidence'), dict):
+            result['evidence']['records'] = closest_records(result['evidence'].get('records', []), payload)
+            result['evidence']['record_limit'] = 10
+        return jsonify(result)
     except (ValueError, TypeError, KeyError):
         return jsonify(status='invalid', probability=None, message='Check your score, GPA, programme and round.'),400
     except RuntimeError:
         return jsonify(status='unavailable', probability=None, message='The model is temporarily unavailable.'),503
+
+def closest_records(records, profile):
+    window = 50 if profile['test_type'] == 'SAT' else 4
+    score = engine.number(profile['score'], 'Score')
+    gpa = engine.number(profile['gpa'], 'GPA')
+    nearby = [r for r in records if abs(r['score'] - score) <= window and abs(r['gpa'] - gpa) <= .5]
+    return sorted(nearby, key=lambda r: (
+        abs(r['score'] - score) / window + abs(r['gpa'] - gpa) / .5,
+        str(r['id'])))[:10]
 
 def comparison_data(payload):
     if not isinstance(payload, dict):
@@ -86,8 +101,8 @@ def comparison_data(payload):
         nearby = counts([r for r in rows if r["nearby"]])
         years.append(dict(counts(rows), cycle=cycle, nearby_total=nearby["total"],
                           nearby_admitted=nearby["admitted"], nearby_rejected=nearby["rejected"]))
-    return dict(status="ok", records=records, nearby=dict(counts(near), test_window=window, gpa_window=.5),
-                by_year=years, context=counts(records), complete=True,
+    return dict(status="ok", records=closest_records(records, checked), nearby=dict(counts(near), test_window=window, gpa_window=.5),
+                by_year=years, context=counts(records), complete=False, record_limit=10,
                 proxy_notice=engine.PROGRAM_CONTRACTS[course]["mapping_notice"],
                 filters=dict(course=course, session=session, test_type=kind))
 
@@ -102,42 +117,10 @@ def reports():
 
 @app.post('/api/report.pdf')
 def download_pdf():
-    try:
-        body=request.get_json(silent=True)
-        if not isinstance(body,dict) or not isinstance(body.get('profile'),dict):
-            raise ValueError('Missing profile')
-        profile=dict(body['profile'])
-        filters=body.get('filters',{})
-        if not isinstance(filters,dict):
-            raise ValueError('Invalid filters')
-        profile['course']=filters.get('course',profile['course'])
-        session=filters.get('session',profile['session'])
-        if session in ('Early','Winter'):
-            profile['session']=session
-        profile['score']=engine.number(profile['score'],'Score')
-        profile['gpa']=engine.number(profile['gpa'],'GPA')
-        result=engine.evaluate(profile)
-        if result['status']!='estimated':
-            raise ValueError('No estimate')
-        comparison=comparison_data(dict(profile,session=session))
-        cycle=filters.get('cycle','')
-        if cycle and cycle not in [row['cycle'] for row in comparison['by_year']]:
-            raise ValueError('Invalid cycle')
-        rows=[row for row in comparison['records'] if not cycle or row['cycle']==cycle]
-        comparison['records']=rows
-        comparison['nearby'].update(total=sum(r['nearby'] for r in rows),
-            admitted=sum(r['nearby'] and r['outcome']=='admitted' for r in rows),
-            rejected=sum(r['nearby'] and r['outcome']=='rejected' for r in rows))
-        comparison['filters']['cycle']=cycle
-        from lib.report_pdf import render
-        data=render(dict(profile=profile,estimate=dict(probability=result['probability'],display_percent=result['display_percent']),comparison=comparison))
-        if not data.startswith(b'%PDF-'):
-            raise RuntimeError('Invalid document')
-        return Response(data,mimetype='application/pdf',headers={'Content-Disposition':'attachment; filename="chance-me-report.pdf"'})
-    except (ValueError,TypeError,KeyError):
-        return jsonify(status='invalid',message='Calculate a result before downloading.'),400
-    except (RuntimeError,OSError):
-        return jsonify(status='unavailable',message='The PDF could not be created. Please try again.'),503
+    # Do not expose a direct download while email delivery is unavailable.
+    request.get_json(silent=True)  # Preserve the request-size boundary.
+    return jsonify(status='unavailable', delivery='email',
+                   message='PDF reports are currently unavailable. Future reports will require an email address and be delivered by email.'), 503
 
 @app.errorhandler(413)
 def too_large(error):

@@ -96,39 +96,51 @@ class ApiTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 413)
             self.assertEqual(response.get_json()['status'], 'invalid')
 
-    def test_comparison_counts_and_round_filters_match_records(self):
+    def test_comparisons_only_share_ten_close_profiles(self):
+        from api.index import comparison_data, closest_records
         for kind, score in [('SAT', 1450), ('Bocconi', 38)]:
-            combined = self.post('/api/reports', test_type=kind, score=score, session='All')
-            self.assertEqual(combined.status_code, 200)
-            body = combined.get_json()
-            records = body['records']
-            self.assertTrue(body['complete'])
-            self.assertEqual(body['context']['total'], len(records))
-            self.assertEqual(len(records), len({r['id'] for r in records}))
-            self.assertEqual(body['nearby']['total'], sum(r['nearby'] for r in records))
-            self.assertEqual(body['nearby']['admitted'], sum(r['nearby'] and r['outcome'] == 'admitted' for r in records))
-            self.assertEqual(sum(r['total'] for r in body['by_year']), len(records))
-            for session in ['Early', 'Winter']:
-                selected = self.post('/api/reports', test_type=kind, score=score, session=session).get_json()
-                self.assertEqual({r['id'] for r in selected['records']}, {r['id'] for r in records if r['session'] == session})
-            allowed = {'id', 'score', 'gpa', 'course', 'session', 'cycle', 'outcome', 'nearby', 'used_for_bt_fit', 'source_status'}
-            self.assertTrue(all(set(r) <= allowed for r in records))
+            for session in ['All', 'Early', 'Winter']:
+                with self.subTest(kind=kind, session=session):
+                    profile = dict(PROFILE, test_type=kind, score=score, session=session)
+                    body = self.client.post('/api/reports', json=profile).get_json()
+                    records = body['records']
+                    self.assertFalse(body['complete'])
+                    self.assertEqual(body['record_limit'], 10)
+                    self.assertLessEqual(len(records), 10)
+                    self.assertTrue(all(r['nearby'] for r in records))
+                    self.assertEqual(len(records), len({r['id'] for r in records}))
+                    self.assertGreaterEqual(body['nearby']['total'], len(records))
+                    self.assertEqual(sum(r['total'] for r in body['by_year']), body['context']['total'])
+                    self.assertTrue(all(session == 'All' or r['session'] == session for r in records))
+                    self.assertEqual(records, closest_records(records, profile))
+        # A client cannot request a larger page or an export of distant profiles.
+        limited = self.post('/api/reports', limit=9999, offset=0, all=True).get_json()
+        self.assertLessEqual(len(limited['records']), 10)
         self.assertEqual(self.post('/api/reports', session='Spring').status_code, 400)
+        distant = self.post('/api/reports', score=1100, gpa=6).get_json()
+        self.assertEqual(distant['records'], [])
 
-    def test_pdf_is_a_real_portable_document_with_validated_filters(self):
-        comparison = self.post('/api/reports', course='Finance', session='Early').get_json()
-        filters = dict(course='Finance', session='Early', cycle=comparison['by_year'][0]['cycle'])
-        response = self.client.post('/api/report.pdf', json=dict(profile=PROFILE, filters=filters))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, 'application/pdf')
-        self.assertTrue(response.data.startswith(b'%PDF-'))
-        self.assertTrue(response.data.rstrip().endswith(b'%%EOF'))
-        self.assertGreater(len(response.data), 1000)
-        self.assertIn('attachment;', response.headers['Content-Disposition'])
-        for payload in [{}, dict(profile=PROFILE, filters=[]), dict(profile=PROFILE, filters=dict(cycle='unknown')),
-                        dict(profile=dict(PROFILE, score=1030))]:
-            with self.subTest(payload=payload):
-                self.assertEqual(self.client.post('/api/report.pdf', json=payload).status_code, 400)
+    def test_closest_selection_is_stable_and_never_backfills_distant_profiles(self):
+        from api.index import closest_records
+        records = [dict(id=str(i), score=1450+i, gpa=9) for i in range(30)]
+        records += [dict(id='far', score=1600, gpa=10)]
+        self.assertEqual([r['id'] for r in closest_records(list(reversed(records)), PROFILE)],
+                         [str(i) for i in range(10)])
+        for kind, score in [('SAT', 1450), ('Bocconi', 38)]:
+            body = self.post(test_type=kind, score=score).get_json()
+            records = body['evidence']['records']
+            self.assertLessEqual(len(records), 10)
+            self.assertTrue(all(r['nearby'] for r in records))
+            original = engine.evaluate(dict(PROFILE, test_type=kind, score=score))
+            self.assertEqual(body['probability'], original['probability'])
+
+    def test_direct_pdf_download_is_disabled_even_with_an_email(self):
+        for payload in [{}, dict(profile=PROFILE), dict(profile=PROFILE, email='owner@example.invalid')]:
+            response = self.client.post('/api/report.pdf', json=payload)
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.get_json()['delivery'], 'email')
+            self.assertNotIn(b'%PDF-', response.data)
+            self.assertNotIn('Content-Disposition', response.headers)
 
     def test_private_api_responses_are_not_cached_or_indexed(self):
         with patch.dict('os.environ', {'VERCEL_ENV': 'production'}):

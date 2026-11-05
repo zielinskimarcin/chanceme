@@ -186,7 +186,7 @@ test("cycle filter uses nearby counts rather than all applicants in that year", 
   assert.equal(x.api.evidenceCounts(e,"unknown"),null);
   const before=JSON.stringify(e.records);
   const filtered=x.api.evidenceRecords(e,{test_type:"SAT",score:1450,gpa:9},"26-27");
-  assert.equal(filtered.length,4); assert.ok(filtered.every(r=>r.cycle==="26-27"));
+  assert.equal(filtered.length,3); assert.ok(filtered.every(r=>r.cycle==="26-27"));
   assert.equal(JSON.stringify(e.records),before);
 });
 test("chart, counts and table respond together without changing the model estimate", async()=>{
@@ -196,23 +196,23 @@ test("chart, counts and table respond together without changing the model estima
   const more=descendants(body,e=>e.tagName==="BUTTON"&&e.textContent.includes("Show all"))[0];
   assert.equal(descendants(body,e=>e.tagName==="TBODY")[0].children.length,6);
   more.listeners.click();
-  assert.equal(descendants(body,e=>e.tagName==="TBODY")[0].children.length,8);
+  assert.equal(descendants(body,e=>e.tagName==="TBODY")[0].children.length,7);
   const select=descendants(body,e=>e.tagName==="SELECT")[0];select.value="26-27";select.listeners.change();
-  assert.equal(descendants(body,e=>e.tagName==="TBODY")[0].children.length,4);
+  assert.equal(descendants(body,e=>e.tagName==="TBODY")[0].children.length,3);
   assert.match(body.textContent,/3 of 11/);
-  assert.equal(descendants(body,e=>e.tagName==="SVG")[0].getAttribute("aria-label").startsWith("4 selected reports"),true);
+  assert.equal(descendants(body,e=>e.tagName==="SVG")[0].getAttribute("aria-label").startsWith("3 selected reports"),true);
   assert.equal(x.calls.length,2);assert.equal(x.elements.percentage.textContent,"59%");
   assert.equal(more.hidden,true);
   x.api.invalidate();assert.equal(body.children.length,0);assert.equal(x.elements.evidence.hidden,true);
 });
-test("zero close matches still show real outside-range records, without inventing a rate", async()=>{
+test("zero close matches do not disclose outside-range records or invent a rate", async()=>{
   const data=estimate("18%",.18);data.evidence=evidenceFixture();data.evidence.nearby={total:0,admitted:0,rejected:0,test_window:4,gpa_window:.5};
   data.evidence.records.forEach(r=>{r.nearby=false;r.used_for_bt_fit=false;});
   const x=await setup({fetch:async()=>({ok:true,json:async()=>data})});x.valid();await x.api.calculate();
   const text=x.elements["evidence-body"].textContent;
-  assert.match(text,/similar reports in this range/);assert.match(text,/outside your score range/);
-  assert.doesNotMatch(text,/0 of 0/);assert.match(text,/Comparison only/);
-  assert.equal(descendants(x.elements["evidence-body"],e=>e.tagName==="G").length,8);
+  assert.match(text,/similar reports in this range/);assert.match(text,/No close profiles/);
+  assert.doesNotMatch(text,/0 of 0/);
+  assert.equal(descendants(x.elements["evidence-body"],e=>e.tagName==="G").length,0);
 });
 
 test("compact evidence uses a readable chart and four initial report cards", async()=>{
