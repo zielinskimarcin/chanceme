@@ -9,7 +9,7 @@ const ChanceReport = (function () {
     if (current) current.visible = false;
   }
   function reset() {
-    if (current) { if (current.request) current.request.abort(); if (current.exportRequest) current.exportRequest.abort(); if (current.animation) current.animation.cancel(); }
+    if (current) { current.emailForm?.reset(); if (current.request) current.request.abort(); if (current.exportRequest) current.exportRequest.abort(); if (current.animation) current.animation.cancel(); }
     current = null; sequence++; close();
   }
   function open(options = {}) {
@@ -147,10 +147,11 @@ const ChanceReport = (function () {
       if(visible.length)table(tableHost,[input.test_type==="SAT"?"SAT":"Bocconi Test","GPA","Cycle","Reported outcome","Round"],visible.map(r=>{const outcome=node("span",undefined,"outcome "+(r.outcome==="rejected"?"rejected":"admitted"));outcome.append(node("span",r.outcome==="admitted"?"✓":"×"),node("span",r.outcome==="admitted"?"Admitted":"Not admitted"));const wrap=node("div");wrap.append(outcome);if(r.used_for_bt_fit===false){const note=node("small","Comparison only","comparison-only");note.title="This report was not used to fit the Bocconi Test model.";wrap.append(note);}return[format(r.score),format(r.gpa),year(r.cycle),wrap,r.session];}));else tableHost.append(node("p","No reports for these filters.","reports-empty"));more.hidden=records.length<=limit;more.textContent=fullPage?(own.showAll?"Show fewer ↑":"Show all "+records.length+" reports ↓"):(own.showAll?"Show less ↑":"Show more ↓");more.setAttribute("aria-expanded",String(own.showAll));
     }
     function update(){if(!own.dataset)return;const counts=evidenceCounts(own.dataset,own.cycle),records=rows();explorerHeading.lastChild.textContent=records.length+" reports";summary.replaceChildren();summary.append(node("h4","Similar profiles"));if(counts){const number=node("p",undefined,"context-big-count");number.append(node("strong",counts.total?counts.admitted+" of "+counts.total:"0"));summary.append(number,node("p",counts.total?"reported admission":"similar reports","context-count-label"));const list=node("dl",undefined,"context-outcomes");[["Admitted",counts.admitted,"admitted"],["Not admitted",counts.rejected,"rejected"]].forEach(pair=>{const row=node("div"),dt=node("dt");dt.append(node("i",undefined,"legend-mark "+pair[2]),node("span",pair[0]));row.append(dt,node("dd",pair[1]));list.append(row);});summary.append(list);}summary.append(node("p","Self-reported results. This share is not your admission probability.","context-summary-note"));
-      aboutBody.replaceChildren(node("p","The chart and table show at most 10 close profiles. Cycle filters narrow this selection. Counts summarise all similar profiles; individual records from the full dataset are not shared."),node("p","Similar = within ±"+own.dataset.nearby.test_window+" "+(input.test_type==="SAT"?"SAT":"Bocconi Test")+" points and ±0.5 GPA, for the programme, round and cycle selected above."));if(own.dataset.proxy_notice)aboutBody.append(node("p",own.dataset.proxy_notice));aboutBody.append(node("p","Reports are self-reported; their GPA and applicant category are not independently verified."));if(records.some(r=>r.used_for_bt_fit===false))aboutBody.append(node("p","‘Comparison only’ means a report was not used to fit the Bocconi Test model."));draw();renderRows();pdf.disabled=true;full.removeAttribute("aria-disabled");syncFullLink();
+      aboutBody.replaceChildren(node("p","The chart and table show at most 10 close profiles. Cycle filters narrow this selection. Counts summarise all similar profiles; individual records from the full dataset are not shared."),node("p","Similar = within ±"+own.dataset.nearby.test_window+" "+(input.test_type==="SAT"?"SAT":"Bocconi Test")+" points and ±0.5 GPA, for the programme, round and cycle selected above."));if(own.dataset.proxy_notice)aboutBody.append(node("p",own.dataset.proxy_notice));aboutBody.append(node("p","Reports are self-reported; their GPA and applicant category are not independently verified."));if(records.some(r=>r.used_for_bt_fit===false))aboutBody.append(node("p","‘Comparison only’ means a report was not used to fit the Bocconi Test model."));draw();renderRows();pdf.disabled=own.data.status!=="estimated"||pdf.dataset.emailEnabled!=="true";full.removeAttribute("aria-disabled");syncFullLink();
+      if(!own.emailForm && own.data.status==="estimated")own.emailForm=window.ChanceReportEmail?.mount(pdf,exportStatus,()=>({profile:own.input,filters:{course:own.course,session:own.session,cycle:own.cycle}}),()=>current===own&&Boolean(own.dataset));
     }
     async function load(recalculate=false) {
-      const id=++own.requestId,target={...own.input,course:course.value,session:round.value},previousDataset=own.dataset;
+      own.emailForm?.reset();const id=++own.requestId,target={...own.input,course:course.value,session:round.value},previousDataset=own.dataset;
       if(own.request)own.request.abort();if(own.exportRequest)own.exportRequest.abort();const controller=new AbortController();own.request=controller;
       const timeout=setTimeout(()=>controller.abort(),20000);
       error.hidden=false;error.replaceChildren(node("span",recalculate?"Updating result…":"Loading reports…"));pdf.disabled=true;full.removeAttribute("href");full.setAttribute("aria-disabled","true");
@@ -176,7 +177,7 @@ const ChanceReport = (function () {
       own.cycle=reports.by_year.some(r=>r.cycle===previous)?previous:"";cycle.value=own.cycle;own.view=null;own.showAll=false;error.hidden=true;update();
     }
     course.addEventListener("change",()=>load(true));round.addEventListener("change",()=>load(true));
-    cycle.addEventListener("change",()=>{own.cycle=cycle.value;own.view=null;own.showAll=false;update();});
+    cycle.addEventListener("change",()=>{own.emailForm?.reset();own.cycle=cycle.value;own.view=null;own.showAll=false;update();});
     more.addEventListener("click",()=>{own.showAll=!own.showAll;renderRows();});
     host.addEventListener("keydown",e=>{if(e.key==="Escape")hideTip();});
     if(fullPage){
