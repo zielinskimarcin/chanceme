@@ -92,7 +92,7 @@ def render(payload):
     text(575,chart_y+chart_h-65,(str(counts['admitted'])+' of '+str(counts['total'])) if counts['total'] else '0',26,True)
     text(575,chart_y+chart_h-84,'reported admission' if counts['total'] else 'similar reports',9,True)
     text(575,chart_y+72,f"{counts['admitted']}  Admitted",10,True,color=HexColor('#326a57'));text(575,chart_y+48,f"{counts['rejected']}  Not admitted",10,True,color=HexColor('#a24d63'))
-    wrap('This share is not your admission probability.' if counts['total'] else 'Reports outside this range are listed below.',575,chart_y+25,W-625,7)
+    wrap('This share is not your admission probability.' if counts['total'] else 'No close profiles are available in this range.',575,chart_y+25,W-625,7)
     text(32,chart_y-21,'Individual reports',10,True)
     table(records[:4],chart_y-33);footer(1);c.showPage()
     for page,start in enumerate(range(4,len(records),22),2):

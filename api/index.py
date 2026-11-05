@@ -122,6 +122,75 @@ def download_pdf():
     return jsonify(status='unavailable', delivery='email',
                    message='PDF reports are currently unavailable. Future reports will require an email address and be delivered by email.'), 503
 
+def report_pdf(profile, filters):
+    if not isinstance(profile, dict) or not isinstance(filters, dict):
+        raise ValueError('Missing profile')
+    selected = dict(profile, course=filters.get('course', profile.get('course')),
+                    session=filters.get('session', profile.get('session')))
+    result = engine.evaluate(selected)
+    if result['status'] != 'estimated':
+        raise ValueError('No estimate')
+    # Retain only validated, needed fields. The request cannot set a PDF recipient or template.
+    clean = {key: selected[key] for key in ('test_type', 'course', 'session', 'cycle', 'applicant_category', 'gpa_confirmed')}
+    clean.update(score=engine.number(selected['score'], 'Score'),
+                 gpa=engine.number(selected['gpa'], 'GPA'),
+                 gpa_estimated=selected.get('gpa_estimated') is True)
+    comparison = comparison_data(clean)
+    cycle = filters.get('cycle', '')
+    if not isinstance(cycle, str) or (cycle and cycle not in [r['cycle'] for r in comparison['by_year']]):
+        raise ValueError('Invalid cycle')
+    comparison['records'] = [r for r in comparison['records'] if not cycle or r['cycle'] == cycle]
+    comparison['filters']['cycle'] = cycle
+    if cycle:
+        counts = next(r for r in comparison['by_year'] if r['cycle'] == cycle)
+        comparison['nearby'].update(total=counts['nearby_total'], admitted=counts['nearby_admitted'], rejected=counts['nearby_rejected'])
+    from lib.report_pdf import render
+    return render(dict(profile=clean, estimate=result, comparison=comparison))
+
+@app.get('/api/report-email/status')
+def email_status():
+    from lib.report_email import configured
+    return jsonify(enabled=configured())
+
+def email_origin_allowed():
+    origin = request.headers.get('Origin', '')
+    if origin in ('https://chance-me.com', 'https://www.chance-me.com'):
+        return True
+    # Only the exact Vercel-assigned preview hostname or loopback development origin.
+    if os.environ.get('VERCEL_ENV') != 'production':
+        preview = os.environ.get('VERCEL_URL')
+        return origin in {'http://127.0.0.1:18786', 'http://127.0.0.1:18782'} or bool(preview and origin == 'https://' + preview)
+    return False
+
+@app.post('/api/report-email')
+@app.post('/api/report-email/verify')
+def email_report():
+    from lib import report_email as delivery
+    if not email_origin_allowed():
+        return jsonify(status='invalid', message='Open this form on Chance Me.'), 403
+    if not delivery.configured():
+        return jsonify(status='unavailable', message='Email reports are temporarily unavailable.'), 503
+    try:
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            raise ValueError('Invalid request')
+        if request.path.endswith('/verify'):
+            delivery.verify_report(body.get('request_id'), body.get('code'))
+            return jsonify(status='accepted', message='Your report has been submitted for email delivery. Check your inbox and spam folder.')
+        profile, filters = body.get('profile'), body.get('filters', {})
+        # Validate and build from server data only. The browser never supplies PDF bytes.
+        pdf = report_pdf(profile, filters)
+        ip = request.headers.get('X-Vercel-Forwarded-For', '') if os.environ.get('VERCEL') else request.remote_addr
+        ident = delivery.request_report(body.get('email'), ip, lambda: pdf)
+        return jsonify(status='confirmation_required', request_id=ident, expires_in=delivery.TTL,
+                       message='We emailed you a confirmation code. Enter it below within 15 minutes.')
+    except delivery.Limited:
+        return jsonify(status='limited', message='Please wait before trying again. Report requests are limited.'), 429
+    except (delivery.Invalid, ValueError, TypeError, KeyError):
+        return jsonify(status='invalid', message='Check the email, profile or confirmation code. Expired codes require a new request.'), 400
+    except (delivery.Unavailable, RuntimeError, OSError):
+        return jsonify(status='unavailable', message='Email could not be submitted. Please wait one minute and try again.'), 503
+
 @app.errorhandler(413)
 def too_large(error):
     return jsonify(status='invalid',message='The request is too large.'),413
