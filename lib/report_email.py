@@ -45,7 +45,7 @@ def address(value):
 
 def post_json(url, payload, headers):
     try:
-        req = Request(url, data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json', **headers})
+        req = Request(url, data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json', 'User-Agent': 'ChanceMe/2.0 (+https://chance-me.com)', **headers})
         with urlopen(req, timeout=8) as res:
             return json.load(res)
     except Exception:

@@ -1,4 +1,5 @@
 """Transactional email boundary: recipient ownership, limits, private data and PDF scope."""
+import io
 import base64
 import json
 import os
@@ -33,6 +34,12 @@ class MailTest(unittest.TestCase):
         self.env=patch.dict(os.environ,ENV,clear=True);self.env.start();self.addCleanup(self.env.stop)
         self.store=FakeStore();self.sent=[]
         self.sender=patch.object(mail,'send',side_effect=lambda *args:self.sent.append(args));self.sender.start();self.addCleanup(self.sender.stop)
+    def test_http_client_identifies_chance_me_without_browser_impersonation(self):
+        with patch.object(mail, 'urlopen', return_value=io.BytesIO(b'{"id":"safe-id"}')) as opened:
+            self.assertEqual(mail.post_json('https://api.resend.com/emails', {}, {}), {'id':'safe-id'})
+            request = opened.call_args[0][0]
+            self.assertEqual(request.get_header('User-agent'), 'ChanceMe/2.0 (+https://chance-me.com)')
+
     def test_email_ownership_precedes_pdf_and_retries_do_not_duplicate(self):
         ident=mail.request_report('Student@example.com','127.0.0.1',lambda:b'%PDF-test',self.store)
         self.assertEqual(len(self.sent),1);self.assertEqual(self.sent[0][0],'student@example.com')
