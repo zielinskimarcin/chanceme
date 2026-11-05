@@ -165,7 +165,7 @@ function evidenceRecords(evidence, input, cycle) {
   function distance(r) { return Math.abs(r.score - input.score) / testWindow + Math.abs(r.gpa - input.gpa) / gpaWindow; }
   return (Array.isArray(evidence.records) ? evidence.records : []).filter(function (r) {
     return finite(r.score) && finite(r.gpa) && ["admitted", "rejected"].includes(r.outcome) && (!cycle || r.cycle === cycle);
-  }).slice().sort(function (a, b) { return distance(a) - distance(b) || String(b.cycle).localeCompare(String(a.cycle)); });
+  }).filter(function (r) { return r.nearby !== false && Math.abs(r.score-input.score)<=testWindow && Math.abs(r.gpa-input.gpa)<=gpaWindow; }).slice().sort(function (a, b) { return distance(a) - distance(b) || String(b.cycle).localeCompare(String(a.cycle)); }).slice(0,10);
 }
 function svgNode(tag, attributes, text) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -254,7 +254,7 @@ function renderEvidence(data, input) {
   const aboutBody=node("div");
   const tw=e.nearby && e.nearby.test_window, gw=e.nearby && e.nearby.gpa_window;
   aboutBody.append(node("p", finite(tw)&&finite(gw) ? "Similar profiles: same historical programme and round, within ±"+format(tw)+" "+(input.test_type === "SAT"?"SAT":"Bocconi Test")+" points and ±"+format(gw)+" GPA." : "Similarity counts are unavailable for this result."));
-  aboutBody.append(node("p","The chart and table show selected reports from each cycle, including scores outside that range. The counts include all similar reports in the selected cycle."));
+  aboutBody.append(node("p","The chart and table show up to 10 close profiles. The counts include all similar reports in the selected cycle."));
   if(e.proxy_notice) aboutBody.append(node("p",e.proxy_notice));
   if((e.records||[]).some(function(r){return r.used_for_bt_fit===false;})) aboutBody.append(node("p","Reports marked ‘Comparison only’ were not used to fit the Bocconi Test model."));
   const methodology=node("a","Methodology & data limitations ↗");methodology.href="#methodology";methodology.addEventListener("click",function(){$("methodology").open=true;});aboutBody.append(methodology);about.append(aboutBody);body.append(about);
@@ -279,7 +279,7 @@ function renderEvidence(data, input) {
       number.append(node("strong",counts.total ? counts.admitted+" of "+counts.total : "0"));summary.append(number,node("p",counts.total?"reported admission":"similar reports in this range","context-count-label"));
       const list=node("dl",undefined,"context-outcomes");
       [["Admitted",counts.admitted,"admitted"],["Not admitted",counts.rejected,"rejected"]].forEach(function(pair){const row=node("div");const term=node("dt");term.append(node("i",undefined,"legend-mark "+pair[2]),node("span",pair[0]));row.append(term,node("dd",pair[1]));list.append(row);});summary.append(list);
-      if(!counts.total)summary.append(node("p","The reports shown are outside your score range.","context-summary-note"));
+      if(!counts.total)summary.append(node("p","No close profiles are available in this score range.","context-summary-note"));
     }else summary.append(node("p","Counts unavailable for this cycle.","context-summary-note"));
     summary.append(node("p",counts && counts.total > 0 ? "Self-reported results. This share is not your admission probability." : "Self-reported results.","context-summary-note"));
     renderRows(reports);

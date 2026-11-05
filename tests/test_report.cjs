@@ -86,10 +86,11 @@ test('reset makes pending filter responses unable to repaint a stale result',asy
  const pending=[];const x=setup(()=>new Promise(resolve=>pending.push(resolve)));x.api.render(estimate(),profile);const next=selected(x,'report-round','Early');x.api.reset();
  pending[0](ok(comparison()));pending[1](ok(comparison()));pending[2](ok(estimate(54)));await next;await tick();assert.equal(x.results.length,0);assert.equal(x.ids.evidence.hidden,true);assert.equal(x.ids.calculator.hidden,false);
 });
-test('PDF export sends the current recalculated profile and comparison filters',async()=>{
- const x=setup(async(url)=>url==='/api/report.pdf'?{ok:true,blob:async()=>new Blob(['pdf'])}:ok(url==='/api/estimate'?estimate(54):comparison()));
- x.api.render(estimate(),profile);await tick();await selected(x,'report-course','Finance');await selected(x,'report-round','Early');await selected(x,'evidence-cycle','26-27');
- await find(x,e=>e.className==='text-button report-pdf').listeners.click();const body=JSON.parse(x.calls.at(-1).init.body);assert.equal(body.profile.course,'Finance');assert.equal(body.profile.session,'Early');assert.equal(body.filters.cycle,'26-27');
+test('PDF is disabled and explains future email delivery without collecting addresses',async()=>{
+ const x=setup();x.api.render(estimate(),profile);await tick();
+ const pdf=find(x,e=>e.className==='text-button report-pdf');assert.equal(pdf.disabled,true);
+ assert.equal(pdf.listeners.click,undefined);assert.match(x.ids['evidence-body'].textContent,/require your email address/);
+ assert.equal(x.calls.some(c=>c.url==='/api/report.pdf'),false);
 });
 test('CSV quotes cells and prevents spreadsheet formula injection',()=>{const x=setup();assert.equal(x.api.csvCell('=HYPERLINK("bad")'),'"\'=HYPERLINK(""bad"")"');assert.equal(x.api.csvCell(1450),'"1450"');assert.equal(x.api.csvCell('26-27'),'"26-27"');});
 
@@ -98,29 +99,23 @@ test('only an explicit Explore action scrolls to inline details',async()=>{
  x.api.open({scroll:true});assert.equal(x.ids.evidence.scrolled,1);assert.equal(x.ids.calculator.hidden,false);
 });
 
-test('homepage chart and table share 20 nearest reports while counts remain complete',async()=>{
- const d=comparison(40);d.records.forEach((r,i)=>{r.score=1200+i*10;r.gpa=9;r.cycle=i<5?'25-26':'26-27';});d.records.reverse();
- d.by_year=[{cycle:'25-26',nearby_total:5,nearby_admitted:2,nearby_rejected:3},{cycle:'26-27',nearby_total:35,nearby_admitted:18,nearby_rejected:17}];
+test('homepage chart and table share at most ten close profiles while counts stay aggregated',async()=>{
+ const d=comparison(40);d.records.forEach((r,i)=>{r.score=1400+i*2;r.gpa=9;});d.records.reverse();
  const x=setup(async()=>ok(d));x.api.render(estimate(),profile);await tick();
- const chart=()=>find(x,e=>e.className==='report-plot');
- const markers=()=>descend(chart(),e=>e.getAttribute('class')==='chart-report');
- assert.equal(markers().length,20);assert.match(chart().children[0].getAttribute('aria-label'),/^20 past applicant/);
- const labels=markers().map(p=>p.getAttribute('aria-label')).join(';');assert.match(labels,/, 1450,/);assert.match(labels,/, 1360,/);assert.match(labels,/, 1540,/);assert.doesNotMatch(labels,/, 1200,|, 1590,/);
+ const host=find(x,e=>e.className==='report-plot');
+ const points=descend(host,e=>e.getAttribute('class')==='chart-report');assert.equal(points.length,10);
+ assert.match(host.children[0].getAttribute('aria-label'),/^10 past applicant/);
+ assert.ok(points.every(p=>Math.abs(Number(p.getAttribute('aria-label').split(', ')[1])-1450)<=50));
+ const more=find(x,e=>e.className==='text-button reports-more');more.listeners.click();
+ assert.equal(descend(find(x,e=>e.className==='context-reports'),e=>e.tagName==='TR').length,11);
  assert.match(find(x,e=>e.className==='context-summary').textContent,/20 of 40/);
- assert.match(find(x,e=>e.className==='reports-heading').textContent,/6 of 20/);
- const tableHost=find(x,e=>e.className==='context-reports'),more=find(x,e=>e.className==='text-button reports-more'),svg=chart().children[0];
- assert.equal(descend(tableHost,e=>e.tagName==='TR').length,7);assert.equal(more.textContent,'Show more ↓');assert.equal(more.getAttribute('aria-expanded'),'false');
- more.listeners.click();assert.equal(descend(tableHost,e=>e.tagName==='TR').length,21);assert.equal(chart().children[0],svg);assert.equal(more.getAttribute('aria-expanded'),'true');
- more.listeners.click();assert.equal(descend(tableHost,e=>e.tagName==='TR').length,7);assert.equal(chart().children[0],svg);
- await selected(x,'evidence-cycle','25-26');assert.equal(markers().length,5);assert.match(chart().children[0].getAttribute('aria-label'),/^5 past applicant/);
- assert.ok(markers().every(p=>p.getAttribute('aria-label').includes('2025/26')));assert.match(chart().textContent,/1200/);
 });
 test('nearest displayed reports are selected again for each programme and round response',async()=>{
  const x=setup(async(url,init)=>{const p=JSON.parse(init.body);if(url==='/api/estimate')return ok(estimate(54));const d=comparison(30);d.records.forEach((r,i)=>{r.score=1300+i*10;r.gpa=p.course==='Finance'?9.1:9;r.session=p.session;});return ok(d);});
  x.api.render(estimate(),profile);await tick();const labels=()=>descend(find(x,e=>e.className==='report-plot'),e=>e.getAttribute('class')==='chart-report').map(p=>p.getAttribute('aria-label'));
- assert.equal(labels().length,20);assert.ok(labels().every(s=>s.includes('GPA 9,')));
- await selected(x,'report-course','Finance');assert.equal(labels().length,20);assert.ok(labels().every(s=>s.includes('GPA 9.1,')));
- await selected(x,'report-round','Early');assert.equal(labels().length,20);assert.ok(labels().every(s=>s.endsWith('Early')));
+ assert.equal(labels().length,10);assert.ok(labels().every(s=>s.includes('GPA 9,')));
+ await selected(x,'report-course','Finance');assert.equal(labels().length,10);assert.ok(labels().every(s=>s.includes('GPA 9.1,')));
+ await selected(x,'report-round','Early');assert.equal(labels().length,10);assert.ok(labels().every(s=>s.endsWith('Early')));
 });
 
 test('homepage action links replace CSV with a secondary PDF and a new-tab full report',async()=>{
@@ -133,12 +128,12 @@ test('table rows exactly match displayed reports after year filtering',async()=>
  const d=comparison(40);d.records.forEach((r,i)=>{r.score=1200+i*10;r.gpa=9;r.cycle=i<6?'25-26':'26-27';});d.by_year.push({cycle:'25-26',nearby_total:6,nearby_admitted:3,nearby_rejected:3});
  const x=setup(async()=>ok(d));x.api.render(estimate(),profile);await tick();
  function check(expected){const points=descend(find(x,e=>e.className==='report-plot'),e=>e.getAttribute('class')==='chart-report');const tr=descend(find(x,e=>e.className==='context-reports'),e=>e.tagName==='TR').slice(1);assert.equal(points.length,expected);assert.equal(tr.length,expected);assert.deepEqual(tr.map(r=>Number(r.children[0].textContent.replaceAll(',',''))),points.map(p=>Number(p.getAttribute('aria-label').split(', ')[1])));}
- find(x,e=>e.className==='text-button reports-more').listeners.click();check(20);await selected(x,'evidence-cycle','25-26');check(6);assert.equal(find(x,e=>e.className==='text-button reports-more').hidden,true);
+ find(x,e=>e.className==='text-button reports-more').listeners.click();check(10);await selected(x,'evidence-cycle','25-26');check(0);assert.equal(find(x,e=>e.className==='text-button reports-more').hidden,true);
 });
-test('separate full report restores the full dataset, ring, zoom, pan and expand',async()=>{
+test('separate report keeps the ten-profile cap with ring, zoom, pan and expand',async()=>{
  const d=comparison(40);d.records.forEach((r,i)=>{r.score=1200+i*10;r.gpa=9;});const x=setup(async()=>ok(d),true);x.api.render(estimate(),profile);await tick();
  assert.equal(x.ids.calculator.hidden,true);assert.equal(x.scope.document.body.classes.has('report-mode'),true);assert.match(mini(x).textContent,/59%/);
- const host=find(x,e=>e.className==='report-plot');assert.match(host.children[0].getAttribute('aria-label'),/^40 past applicant/);assert.equal(descend(host,e=>e.getAttribute('class')==='chart-report').length,40);
+ const host=find(x,e=>e.className==='report-plot');assert.match(host.children[0].getAttribute('aria-label'),/^10 past applicant/);assert.equal(descend(host,e=>e.getAttribute('class')==='chart-report').length,10);
  const before=host.textContent;find(x,e=>e.getAttribute('aria-label')==='Zoom in').listeners.click();assert.notEqual(host.textContent,before);
  host.listeners.keydown({key:'ArrowLeft',target:host,preventDefault(){}});assert.equal(typeof host.listeners.pointermove,'function');assert.equal(typeof host.listeners.wheel,'function');
  host.listeners.pointerdown({button:0,target:host,clientX:100,clientY:100,pointerId:1});host.listeners.pointermove({clientX:200,clientY:120});await new Promise(r=>setTimeout(r,5));host.listeners.pointerup();
