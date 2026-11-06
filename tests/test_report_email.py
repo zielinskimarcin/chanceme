@@ -16,7 +16,7 @@ ENV = {'VERCEL_ENV':'production','REPORT_EMAIL_ENABLED':'true','RESEND_API_KEY':
 
 class FakeStore:
     def __init__(self):
-        self.pending = {}; self.attempts = {}; self.count = 0
+        self.pending = {}; self.attempts = {}; self.count = 0; self.events = []
     def limit(self, email, ip):
         self.count += 1
         if self.count > 3: raise mail.Limited()
@@ -27,7 +27,8 @@ class FakeStore:
         if p['code'] != mail.digest(ident+':'+code):
             self.attempts[ident]=self.attempts.get(ident,0)+1; raise mail.Invalid()
         return None if p.get('sent') else dict(p)
-    def complete(self, ident): self.pending[ident].update(sent=True); self.pending[ident].pop('pdf',None)
+    def event(self, ident, kind, **fields): self.events.append((ident,kind,fields))
+    def complete(self, ident, provider_id=None): self.pending[ident].update(sent=True); self.pending[ident].pop('pdf',None)
 
 class MailTest(unittest.TestCase):
     def setUp(self):
@@ -49,6 +50,7 @@ class MailTest(unittest.TestCase):
         mail.verify_report(ident,code,self.store);mail.verify_report(ident,code,self.store)
         self.assertEqual(len(self.sent),2);self.assertEqual(base64.b64decode(self.sent[1][4]),b'%PDF-test')
         self.assertNotIn('pdf',self.store.pending[ident])
+        self.assertEqual(self.store.events[0][1],'code_submitted')
     def test_bad_codes_lock_out_after_five_attempts_and_do_not_send_report(self):
         ident=mail.request_report('student@example.com','127.0.0.1',lambda:b'%PDF-test',self.store)
         code=re.search(r'code is ([0-9]{6})',self.sent[0][2])[1]
@@ -93,6 +95,7 @@ class MailTest(unittest.TestCase):
         with patch.object(mail,'send',side_effect=mail.Unavailable):
             with self.assertRaises(mail.Unavailable):mail.verify_report(ident,code,self.store)
         self.assertNotIn('sent',self.store.pending[ident])
+        self.assertEqual(self.store.events[-1][1],'report_send_error')
 
 
 class EmailDesignTest(unittest.TestCase):

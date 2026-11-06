@@ -8,7 +8,7 @@ The visitor supplies one email address and a calculator profile. The server prep
 
 ## Retention and abuse controls
 
-Temporary pending email/code hash/PDF expire after15minutes; PDF bytes are removed after provider acceptance. Quota keys use HMAC identifiers rather than raw IP/email and expire after24hours:40requests/day globally,3per mailbox,8per Vercel-observedIP. Five incorrect codes invalidate a request. Atomic Redis scripts and60-second send locks prevent concurrent duplicates; Resend idempotency keys keep retries safe. Non-production recipients are restricted to the approved owner test accounts. Origin checks allow the canonical site and exact preview/development origins.
+A separate durable private request journal tracks email and processing stages without an automatic TTL; see [owner inspection and data boundaries](REPORT-JOURNAL.md). Temporary pending email/code hash/PDF expire after15minutes; PDF bytes are removed after provider acceptance. Quota keys use HMAC identifiers rather than raw IP/email and expire after24hours:40requests/day globally,3per mailbox,8per Vercel-observedIP. Five incorrect codes invalidate a request. Atomic Redis scripts and60-second send locks prevent concurrent duplicates; Resend idempotency keys keep retries safe. Non-production recipients are restricted to the approved owner test accounts. Origin checks allow the canonical site and exact preview/development origins.
 
 ## Configuration
 
