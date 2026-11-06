@@ -18,6 +18,7 @@ TTL = 15 * 60
 QA_RECIPIENTS = {'marcinpzdr@gmail.com', 'marzielek200@gmail.com', 'marcin@smaklo.com'}
 
 class Unavailable(Exception):
+    """A required delivery dependency is temporarily unavailable."""
     pass
 
 class Limited(Exception):
