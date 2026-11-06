@@ -22,7 +22,7 @@ window.ChanceReportEmail = (function () {
     form.append(label,codeLabel,submit,restart,privacy); status.after(form);
     function reset() {
       if(controller)controller.abort(); controller = null; busy = false; ident = '';
-      if(button.dataset.emailEnabled==='true')status.textContent='Receive your report by email after confirming your address. Includes at most 10 close profiles.';
+      if(button.dataset.emailEnabled==='true')status.textContent='Receive your report by email after confirming your address.';
       form.hidden = true; email.value = ''; email.readOnly = false; code.value = ''; code.required = false;
       codeLabel.hidden = true; restart.hidden = true; submit.disabled = false; submit.textContent = 'Send confirmation code';
     }
@@ -56,7 +56,7 @@ window.ChanceReportEmail = (function () {
     available().then(enabled => {
       if(!enabled || !active())return;
       button.dataset.emailEnabled = 'true'; button.disabled = false; button.textContent = 'Email my PDF';
-      status.textContent = 'Receive your report by email after confirming your address. Includes at most 10 close profiles.';
+      status.textContent = 'Receive your report by email after confirming your address.';
     });
     return {reset};
   }
