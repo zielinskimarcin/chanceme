@@ -95,7 +95,7 @@ class Store:
         lua = """
         local raw=redis.call('GET',KEYS[1]); if not raw then return 'expired' end
         local p=cjson.decode(raw)
-        if (p.attempts or 0)>=5 then return 'expired' end
+        if (p.attempts or 0)>=6 then return 'expired' end
         if p.code~=ARGV[1] then
           p.attempts=(p.attempts or 0)+1
           redis.call('SET',KEYS[1],cjson.encode(p),'KEEPTTL'); return 'invalid:'..p.attempts
