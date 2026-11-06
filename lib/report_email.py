@@ -11,6 +11,7 @@ import secrets
 import time
 from urllib.request import Request, urlopen
 from lib.report_email_template import confirmation_html, report_html
+from lib.report_journal import Journal, keys as journal_keys, new_record
 
 PREFIX = 'chanceme:report-email:v1:'
 TTL = 15 * 60
@@ -78,7 +79,16 @@ class Store:
             raise Limited()
 
     def create(self, ident, pending):
-        if self.command('SET', PREFIX + ident, json.dumps(pending), 'EX', TTL, 'NX') != 'OK':
+        record = new_record(ident, pending['email'], pending['email'] in QA_RECIPIENTS)
+        record['code_expires_at'] = record['created_at'] + TTL
+        lua = """
+        if not redis.call('SET',KEYS[1],ARGV[1],'EX',ARGV[2],'NX') then return 0 end
+        redis.call('SET',KEYS[2],ARGV[3],'NX')
+        redis.call('ZADD',KEYS[3],ARGV[4],ARGV[5])
+        return 1
+        """
+        if self.command('EVAL',lua,3,PREFIX+ident,*journal_keys(ident),json.dumps(pending),TTL,
+                        json.dumps(record),record['created_at'],record['id']) != 1:
             raise Unavailable()
 
     def claim(self, ident, code):
@@ -88,20 +98,34 @@ class Store:
         if (p.attempts or 0)>=5 then return 'expired' end
         if p.code~=ARGV[1] then
           p.attempts=(p.attempts or 0)+1
-          redis.call('SET',KEYS[1],cjson.encode(p),'KEEPTTL'); return 'invalid'
+          redis.call('SET',KEYS[1],cjson.encode(p),'KEEPTTL'); return 'invalid:'..p.attempts
         end
         if p.sent then return 'sent' end
         if not redis.call('SET',KEYS[2],'1','NX','EX',60) then return 'busy' end
         return raw
         """
         result = self.command('EVAL', lua, 2, PREFIX + ident, PREFIX + ident + ':lock', digest(ident + ':' + code))
-        if result in ('invalid', 'expired'):
+        if isinstance(result,str) and result.startswith('invalid:'):
+            attempts=int(result.split(':')[1])
+            self.event(ident,'code_locked' if attempts>=5 else 'code_rejected',attempts=attempts)
+            raise Invalid()
+        if result == 'expired':
             raise Invalid()
         if result == 'busy':
             raise Limited()
-        return None if result == 'sent' else json.loads(result)
+        if result == 'sent':
+            return None
+        pending=json.loads(result)
+        self.event(ident,'email_verified',email=pending['email'])
+        return pending
 
-    def complete(self, ident):
+    def event(self, ident, kind, provider_id=None, email=None, attempts=None):
+        return Journal(self.command).event(ident,kind,provider_id,email,
+                                           bool(email in QA_RECIPIENTS) if email else False,attempts)
+
+    def complete(self, ident, provider_id=None):
+        # Persist provider acceptance first; if this fails, idempotent retry can repair it.
+        self.event(ident,'report_submitted',provider_id=provider_id)
         lua = """
         local raw=redis.call('GET',KEYS[1]); if not raw then return 0 end
         local p=cjson.decode(raw); p.sent=true; p.pdf=nil
@@ -125,6 +149,7 @@ def send(recipient, subject, text, ident, attachment=None):
                        {'Authorization': 'Bearer ' + os.environ['RESEND_API_KEY'], 'Idempotency-Key': ident})
     if not isinstance(result.get('id'), str) or not result['id']:
         raise Unavailable()
+    return result['id']
 
 
 def request_report(email, ip, pdf_factory, store=None):
@@ -146,11 +171,16 @@ def request_report(email, ip, pdf_factory, store=None):
     pending = {'email': email, 'code': digest(ident + ':' + code), 'attempts': 0,
                'pdf': base64.b64encode(pdf).decode('ascii')}
     store.create(ident, pending)
-    send(email, 'Confirm your Chance Me report request',
+    try:
+        provider_id = send(email, 'Confirm your Chance Me report request',
          f'Your confirmation code is {code}. It expires in 15 minutes.\n\n'
          'Enter it on Chance Me to receive your report. If you did not request this, ignore this email.\n\n'
          'Chance Me\nNot affiliated with Bocconi University.\nPrivacy: https://chance-me.com/privacy/',
-         'report-code/' + ident)
+             'report-code/' + ident)
+    except Unavailable:
+        store.event(ident,'code_send_error')
+        raise
+    store.event(ident,'code_submitted',provider_id=provider_id)
     return ident
 
 
@@ -165,9 +195,13 @@ def verify_report(ident, code, store=None):
     pending = store.claim(ident, code)
     if pending is None:
         return  # Already accepted; do not send another attachment.
-    send(pending['email'], 'Your Chance Me report',
+    try:
+        provider_id = send(pending['email'], 'Your Chance Me report',
          'Your PDF report is attached.\n\n'
          'Results are experimental model estimates from self-reported data, not admission guarantees.\n\n'
          'Chance Me\nNot affiliated with Bocconi University.\nPrivacy: https://chance-me.com/privacy/',
-         'report-pdf/' + ident, pending['pdf'])
-    store.complete(ident)
+             'report-pdf/' + ident, pending['pdf'])
+    except Unavailable:
+        store.event(ident,'report_send_error')
+        raise
+    store.complete(ident,provider_id)

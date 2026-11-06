@@ -30,6 +30,7 @@ Test the complete application over HTTP. Never serve the repository root or depl
 
 - Never commit credentials, exports containing personal identifiers, raw analytics exports, or production tokens.
 - Owner scope update 2026-10-29: the private first-party product collector may retain explicitly submitted SAT/Bocconi Test score and GPA, program/round, tab visit ID, event time, path, sanitized source and approximate network country/region/city for 30 days. Keep 90-day coarse aggregates backward compatible.
+- Owner scope update 2026-11-05: the separate private transactional email journal may retain the submitted email, stage timestamps and provider references without an automatic TTL, for request/delivery tracking. It never stores codes, PDFs, scores, grades or IPs and is not a marketing list. Owner-only inspection uses existing Redis/Resend credentials; no public journal endpoint.
 - Never send names, emails, free text, raw IP addresses or credentials to the collector. Detailed history is owner-only, never a public API or committed export.
 - Document the source date and methodology before adding or changing historical records.
 - Never present the output as a guarantee of admission or as an official Bocconi result.
