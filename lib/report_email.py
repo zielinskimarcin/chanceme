@@ -10,6 +10,7 @@ import re
 import secrets
 import time
 from urllib.request import Request, urlopen
+from lib.report_email_template import confirmation_html, report_html
 
 PREFIX = 'chanceme:report-email:v1:'
 TTL = 15 * 60
@@ -111,6 +112,13 @@ class Store:
 
 def send(recipient, subject, text, ident, attachment=None):
     payload = {'from': os.environ['REPORT_EMAIL_FROM'], 'to': [recipient], 'subject': subject, 'text': text}
+    if subject == 'Confirm your Chance Me report request':
+        match = re.search(r'code is ([0-9]{6})', text)
+        if not match:
+            raise Unavailable()
+        payload['html'] = confirmation_html(match[1])
+    elif subject == 'Your Chance Me report':
+        payload['html'] = report_html()
     if attachment:
         payload['attachments'] = [{'filename': 'chance-me-report.pdf', 'content': attachment}]
     result = post_json('https://api.resend.com/emails', payload,
@@ -140,8 +148,8 @@ def request_report(email, ip, pdf_factory, store=None):
     store.create(ident, pending)
     send(email, 'Confirm your Chance Me report request',
          f'Your confirmation code is {code}. It expires in 15 minutes.\n\n'
-         'Enter it in the Chance Me form to receive your report. If you did not request a report, ignore this message.\n\n'
-         'Chance Me — independent Bocconi admissions tool. https://chance-me.com/privacy/',
+         'Enter it on Chance Me to receive your report. If you did not request this, ignore this email.\n\n'
+         'Chance Me\nNot affiliated with Bocconi University.\nPrivacy: https://chance-me.com/privacy/',
          'report-code/' + ident)
     return ident
 
@@ -158,8 +166,8 @@ def verify_report(ident, code, store=None):
     if pending is None:
         return  # Already accepted; do not send another attachment.
     send(pending['email'], 'Your Chance Me report',
-         'Your requested report is attached. It includes at most 10 close historical profiles.\n\n'
+         'Your PDF report is attached.\n\n'
          'Results are experimental model estimates from self-reported data, not admission guarantees.\n\n'
-         'Chance Me — independent Bocconi admissions tool. https://chance-me.com/privacy/',
+         'Chance Me\nNot affiliated with Bocconi University.\nPrivacy: https://chance-me.com/privacy/',
          'report-pdf/' + ident, pending['pdf'])
     store.complete(ident)

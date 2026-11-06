@@ -1,3 +1,5 @@
+> Current policy approved 2026-11-05: a stable selection of 15–20 close profiles when available, fewer for sparse data. The same normalized profile keeps its selection size on retries. Visitor copy does not advertise a numerical limit. No distant backfill, paging or model changes. Confirmed email delivery is active; see [email delivery](EMAIL-REPORTS.md). The original first-stage notes below are history.
+
 # Report access — 2026-11-04
 
 The owner requested a maximum of ten close historical profiles and email delivery instead of unrestricted PDF downloads. The deployed first stage restricts `/api/reports` and the individual evidence in `/api/estimate` to at most ten profiles inside ±50 SAT or ±4 Bocconi Test points and ±0.5 GPA. Sorting is deterministic by normalised distance and ID; no distant backfill or pagination. Programme and round are still validated. Counts remain aggregate totals; cycle filters narrow the returned selection. `complete: false` explicitly marks a partial dataset. This is a per-comparison limit, not a guarantee against repeated profile queries.

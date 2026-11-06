@@ -1,5 +1,6 @@
 """Portable production API for the approved Chance Me interface and frozen V14."""
 from __future__ import annotations
+import hashlib
 import importlib.util
 import json
 import os
@@ -45,12 +46,19 @@ def estimate():
         # The frozen model is unchanged; restrict individual data at the API boundary.
         if isinstance(result.get('evidence'), dict):
             result['evidence']['records'] = closest_records(result['evidence'].get('records', []), payload)
-            result['evidence']['record_limit'] = 10
+            result['evidence']['record_limit'] = 20
         return jsonify(result)
     except (ValueError, TypeError, KeyError):
         return jsonify(status='invalid', probability=None, message='Check your score, GPA, programme and round.'),400
     except RuntimeError:
         return jsonify(status='unavailable', probability=None, message='The model is temporarily unavailable.'),503
+
+def comparison_size(profile):
+    # Stable variation: retries cannot rotate a selection to expose more records.
+    key = json.dumps([profile['test_type'], float(profile['score']), float(profile['gpa']),
+                      profile.get('course'), profile.get('session')], separators=(',', ':'))
+    return 15 + int.from_bytes(hashlib.sha256(key.encode()).digest()[:2], 'big') % 6
+
 
 def closest_records(records, profile):
     window = 50 if profile['test_type'] == 'SAT' else 4
@@ -59,7 +67,7 @@ def closest_records(records, profile):
     nearby = [r for r in records if abs(r['score'] - score) <= window and abs(r['gpa'] - gpa) <= .5]
     return sorted(nearby, key=lambda r: (
         abs(r['score'] - score) / window + abs(r['gpa'] - gpa) / .5,
-        str(r['id'])))[:10]
+        str(r['id'])))[:comparison_size(profile)]
 
 def comparison_data(payload):
     if not isinstance(payload, dict):
@@ -101,8 +109,8 @@ def comparison_data(payload):
         nearby = counts([r for r in rows if r["nearby"]])
         years.append(dict(counts(rows), cycle=cycle, nearby_total=nearby["total"],
                           nearby_admitted=nearby["admitted"], nearby_rejected=nearby["rejected"]))
-    return dict(status="ok", records=closest_records(records, checked), nearby=dict(counts(near), test_window=window, gpa_window=.5),
-                by_year=years, context=counts(records), complete=False, record_limit=10,
+    return dict(status="ok", records=closest_records(records, dict(checked, session=session)), nearby=dict(counts(near), test_window=window, gpa_window=.5),
+                by_year=years, context=counts(records), complete=False, record_limit=20,
                 proxy_notice=engine.PROGRAM_CONTRACTS[course]["mapping_notice"],
                 filters=dict(course=course, session=session, test_type=kind))
 

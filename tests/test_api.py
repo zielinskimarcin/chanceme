@@ -96,7 +96,7 @@ class ApiTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 413)
             self.assertEqual(response.get_json()['status'], 'invalid')
 
-    def test_comparisons_only_share_ten_close_profiles(self):
+    def test_comparisons_only_share_a_bounded_close_selection(self):
         from api.index import comparison_data, closest_records
         for kind, score in [('SAT', 1450), ('Bocconi', 38)]:
             for session in ['All', 'Early', 'Winter']:
@@ -105,8 +105,8 @@ class ApiTestCase(unittest.TestCase):
                     body = self.client.post('/api/reports', json=profile).get_json()
                     records = body['records']
                     self.assertFalse(body['complete'])
-                    self.assertEqual(body['record_limit'], 10)
-                    self.assertLessEqual(len(records), 10)
+                    self.assertEqual(body['record_limit'], 20)
+                    self.assertLessEqual(len(records), 20)
                     self.assertTrue(all(r['nearby'] for r in records))
                     self.assertEqual(len(records), len({r['id'] for r in records}))
                     self.assertGreaterEqual(body['nearby']['total'], len(records))
@@ -115,24 +115,33 @@ class ApiTestCase(unittest.TestCase):
                     self.assertEqual(records, closest_records(records, profile))
         # A client cannot request a larger page or an export of distant profiles.
         limited = self.post('/api/reports', limit=9999, offset=0, all=True).get_json()
-        self.assertLessEqual(len(limited['records']), 10)
+        self.assertLessEqual(len(limited['records']), 20)
         self.assertEqual(self.post('/api/reports', session='Spring').status_code, 400)
         distant = self.post('/api/reports', score=1100, gpa=6).get_json()
         self.assertEqual(distant['records'], [])
 
     def test_closest_selection_is_stable_and_never_backfills_distant_profiles(self):
-        from api.index import closest_records
+        from api.index import closest_records, comparison_size
         records = [dict(id=str(i), score=1450+i, gpa=9) for i in range(30)]
         records += [dict(id='far', score=1600, gpa=10)]
         self.assertEqual([r['id'] for r in closest_records(list(reversed(records)), PROFILE)],
-                         [str(i) for i in range(10)])
+                         [str(i) for i in range(comparison_size(PROFILE))])
         for kind, score in [('SAT', 1450), ('Bocconi', 38)]:
             body = self.post(test_type=kind, score=score).get_json()
             records = body['evidence']['records']
-            self.assertLessEqual(len(records), 10)
+            self.assertLessEqual(len(records), 20)
             self.assertTrue(all(r['nearby'] for r in records))
             original = engine.evaluate(dict(PROFILE, test_type=kind, score=score))
             self.assertEqual(body['probability'], original['probability'])
+
+    def test_selection_size_varies_stably_without_padding_sparse_data(self):
+        from api.index import comparison_size, closest_records
+        sizes = {comparison_size(dict(PROFILE, score=score)) for score in range(1400, 1501)}
+        self.assertEqual(sizes, set(range(15, 21)))
+        self.assertEqual(comparison_size(PROFILE), comparison_size(dict(PROFILE, score='1450', gpa='9')))
+        sparse = [dict(id='only', score=1450, gpa=9)]
+        self.assertEqual(closest_records(sparse, PROFILE), sparse)
+        self.assertEqual(closest_records([], PROFILE), [])
 
     def test_direct_pdf_download_is_disabled_even_with_an_email(self):
         for payload in [{}, dict(profile=PROFILE), dict(profile=PROFILE, email='owner@example.invalid')]:

@@ -79,13 +79,13 @@ class MailTest(unittest.TestCase):
             self.assertFalse(client.get('/api/report-email/status').get_json()['enabled'])
             response=client.post('/api/report-email',json={'email':'private@example.com'},headers={'Origin':'https://chance-me.com'})
             self.assertEqual(response.status_code,503);self.assertNotIn(b'private@example.com',response.data)
-    def test_pdf_uses_only_server_selected_ten_close_profiles(self):
+    def test_pdf_uses_only_server_selected_close_profiles(self):
         from lib.report_pdf import render
         with patch('lib.report_pdf.render',wraps=render) as renderer:
             pdf=report_pdf(PROFILE,{'course':'Management','session':'Winter','cycle':''})
             self.assertTrue(pdf.startswith(b'%PDF-'));self.assertTrue(pdf.rstrip().endswith(b'%%EOF'))
             payload=renderer.call_args[0][0];rows=payload['comparison']['records']
-            self.assertEqual(len(rows),10);self.assertTrue(all(r['nearby'] for r in rows))
+            self.assertGreaterEqual(len(rows),15);self.assertLessEqual(len(rows),20);self.assertTrue(all(r['nearby'] for r in rows))
         with self.assertRaises(ValueError):report_pdf(PROFILE,{'cycle':'invented'})
     def test_provider_error_is_generic_and_never_marks_a_failed_send_complete(self):
         ident=mail.request_report('student@example.com','127.0.0.1',lambda:b'%PDF-test',self.store)
@@ -93,5 +93,27 @@ class MailTest(unittest.TestCase):
         with patch.object(mail,'send',side_effect=mail.Unavailable):
             with self.assertRaises(mail.Unavailable):mail.verify_report(ident,code,self.store)
         self.assertNotIn('sent',self.store.pending[ident])
+
+
+class EmailDesignTest(unittest.TestCase):
+    def test_provider_payload_contains_html_text_and_no_attachment_for_code(self):
+        with patch.dict(os.environ,ENV,clear=True), patch.object(mail,'post_json',return_value={'id':'test-id'}) as provider:
+            mail.send('student@example.com','Confirm your Chance Me report request','Your confirmation code is 123456.','code/test')
+            payload=provider.call_args[0][1]
+            self.assertIn('123456',payload['html']);self.assertIn('123456',payload['text'])
+            self.assertNotIn('attachments',payload)
+            self.assertIn('chance me</a>',payload['html'])
+            self.assertNotIn('letter-spacing:1.',payload['html'])
+            self.assertNotIn('CONFIRMATION CODE',payload['html'])
+            self.assertNotIn('in context',payload['html'])
+            self.assertIn('https://chance-me.com/privacy/',payload['html'])
+            self.assertNotIn('123456',payload['html'].split('<table role="presentation"')[0])
+            mail.send('student@example.com','Your Chance Me report','Your report is attached.','pdf/test','cGRm')
+            payload=provider.call_args[0][1]
+            self.assertIn('Your PDF is attached.',payload['html'])
+            self.assertEqual(payload['attachments'][0]['content'],'cGRm')
+    def test_template_rejects_html_instead_of_a_code(self):
+        from lib.report_email_template import confirmation_html
+        with self.assertRaises(ValueError):confirmation_html('<script>')
 
 if __name__=='__main__':unittest.main()
