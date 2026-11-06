@@ -14,10 +14,11 @@ from lib.report_email_template import confirmation_html, report_html
 from lib.report_journal import Journal, keys as journal_keys, new_record
 
 PREFIX = 'chanceme:report-email:v1:'
-TTL = 24 * 60 * 60
+TTL = 15 * 60
 QA_RECIPIENTS = {'marcinpzdr@gmail.com', 'marzielek200@gmail.com', 'marcin@smaklo.com'}
 
 class Unavailable(Exception):
+    """A required delivery dependency is temporarily unavailable."""
     pass
 
 class Limited(Exception):
