@@ -53,6 +53,8 @@ The standard 2027/28 undergraduate ranking has two components: **55% selection t
 
 The test percentage describes the ranking weight. It is not a formula for adding an unconverted score out of 50 to a GPA out of 10. Bocconi also equalises SAT, ACT and Bocconi Test results internally using comparative percentile tables.
 
+To compare your score and GPA with past applicants, use the [Bocconi admission calculator](/#calculator). Select your programme and Early or Winter round to see the experimental estimate and nearby self-reported profiles. It is not Bocconi’s official ranking score or a guarantee of admission.
+
 Use the GPA requested in the application portal. Our [Bocconi GPA calculator](/bocconi-gpa-calculator/) can help you organise your grades and estimate supported numeric conversions; the university’s portal remains the source for your application value.
 
 [Official selection criteria](https://www.unibocconi.it/en/applying-bocconi/bachelor-and-law-programs/application-and-admissions/admissions) · [How Bocconi compares the accepted tests](https://www.unibocconi.it/en/applying-bocconi/bachelor-and-law-programs/application-and-admissions/sat-and-act).

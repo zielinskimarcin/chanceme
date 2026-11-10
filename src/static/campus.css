@@ -524,3 +524,9 @@
 @media(max-width:380px){.about-section{padding-inline:15px}.about-person{gap:14px}.about-portrait-art{width:104px;height:104px}.about-portrait-art .author-photo{width:84px;height:84px}.about-person-caption p{font-size:13px}.about-person-caption p span{font-size:11px}}
 
 .report-email-form{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:16px 0;max-width:700px}.report-email-form[hidden],.report-email-form [hidden]{display:none}.report-email-form label{display:grid;gap:6px;font-size:14px;font-weight:700;flex:1 1 220px}.report-email-form input{width:100%;box-sizing:border-box;border:1px solid #bccfd4;border-radius:10px;padding:12px;font:inherit;background:#fff;color:#17324d}.report-email-form button{border:0;border-radius:20px;padding:12px 18px;background:#326a57;color:white;font:inherit;cursor:pointer}.report-email-form button:disabled{opacity:.6;cursor:wait}.report-email-form p{flex-basis:100%;font-size:12px;color:#58718c}
+
+/* Context for admission inputs, below the calculator and existing steps. */
+.admission-context{max-width:780px;margin:0 0 24px;color:var(--muted);font-size:14px;line-height:1.75}
+.admission-context h3{color:var(--ink);font-size:16px;margin:0 0 10px}
+.admission-context p{margin:0 0 12px}
+.admission-context a{color:var(--blue);text-underline-offset:3px}
