@@ -14,10 +14,10 @@ fs.cpSync('src/static','dist',{recursive:true});
 for(const name of fs.readdirSync('src/pages'))fs.copyFileSync('src/pages/'+name,'dist/'+name);
 execFileSync(process.execPath,['scripts/build-guides.mjs',...(production?['--production']:[])],{stdio:'inherit'});
 const pages=[
- {file:'index.html',url:'/',title:'Bocconi Admission Calculator | SAT, GPA & Bocconi Test',description:'Estimate your Bocconi admission chances using SAT or Bocconi Test scores and GPA. Compare past applicants by programme and round for 2027/28 entry.',type:'WebApplication'},
+ {file:'index.html',url:'/',modified:'2026-11-10',title:'Bocconi Admission Calculator | SAT, GPA & Bocconi Test',description:'Estimate your Bocconi admission chances using SAT or Bocconi Test scores and GPA. Compare past applicants by programme and round for 2027/28 entry.',type:'WebApplication'},
  {file:'gpa-campus.html',url:'/bocconi-gpa-calculator/',title:'Bocconi GPA Calculator | School Grades to Bocconi GPA',description:'Calculate a Bocconi-scale GPA from school grades, choose your country or curriculum, and transfer your result to the admission calculator.',type:'WebApplication',name:'Bocconi GPA calculator'},
  {file:'sat-lessons.html',url:'/sat-tutoring/',title:'SAT Tutoring for Bocconi | Go for 1500+ | Chance Me',description:'SAT tutoring for Bocconi with Marcin, a third-year Bocconi student. Three years of experience, test preparation and application support. €50 per hour.',type:'Service',name:'SAT tutoring for Bocconi'},
- {file:'bocconi-test-score/index.html',url:'/bocconi-test-score/',name:'Bocconi Test guide'},
+ {file:'bocconi-test-score/index.html',url:'/bocconi-test-score/',modified:'2026-11-10',name:'Bocconi Test guide'},
  {file:'bocconi-sat-score/index.html',url:'/bocconi-sat-score/',name:'SAT for Bocconi'},
  {file:'full-report.html',url:'/report/',title:'Your Bocconi Admission Report | Chance Me',description:'Explore your model estimate and self-reported historical Bocconi applicant data.',noindex:true,name:'Your report'},
  {file:'gpa-school-sources.html',url:'/gpa-school-sources/',title:'School Grading Systems: Sources | Chance Me',description:'Sources and limitations for the school systems used in the Chance Me GPA calculator.',noindex:true,name:'GPA sources'}
@@ -71,6 +71,6 @@ for(const p of [...pages,{file:'404.html',url:null,noindex:true}]){
  fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,html);
 }
 fs.writeFileSync('public/robots.txt',`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${host}/sitemap.xml\n`);
-fs.writeFileSync('public/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${pages.filter(p=>!p.noindex).map(p=>`<url><loc>${host+p.url}</loc><lastmod>2026-10-27</lastmod></url>`).join('')}</urlset>\n`);
+fs.writeFileSync('public/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${pages.filter(p=>!p.noindex).map(p=>`<url><loc>${host+p.url}</loc><lastmod>${p.modified||'2026-10-27'}</lastmod></url>`).join('')}</urlset>\n`);
 fs.writeFileSync('public/build-manifest.json',JSON.stringify({version:'campus-production-2026-10-27',indexable:production,pages:pages.map(p=>p.url)},null,2));
 console.log(`Built ${pages.length} pages (${production?'production':'preview noindex'}), public files only.`);
